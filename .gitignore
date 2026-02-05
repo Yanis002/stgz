@@ -9,6 +9,7 @@ build/
 
 # workspace files
 *.nds
+hooks/setup.asm
 
 # melonDS files
 *.sav

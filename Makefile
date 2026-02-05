@@ -57,6 +57,7 @@ EXTRACTED_DIR := $(EXTRACT_DIR)/$(REGION)
 OUT_ROM := stgz.nds
 
 OVLGZ_SIZE := 0x20000
+HOOKS_SIZE := 0x9C
 
 # region addresses
 ifeq ($(REGION),eur)
@@ -78,6 +79,7 @@ ARMIPS_ARGS ?= \
 				-equ OVL018_ADDR $(OVL018_ADDR) \
 				-equ OVLGZ_ADDR $(OVLGZ_ADDR) \
 				-equ OVLGZ_SIZE $(OVLGZ_SIZE) \
+				-equ HOOKS_SIZE $(HOOKS_SIZE) \
 				-equ ARM9_NEW_CODE_STORE_ADDR $(ARM9_NEW_CODE_STORE_ADDR) \
 				-equ HOOK_UPDATE $(HOOK_UPDATE) \
 				-equ HOOK_INIT $(HOOK_INIT)
@@ -90,8 +92,8 @@ extract:
 	$(DSROM) extract --rom $(EXTRACT_DIR)/baserom_st_$(REGION).nds --path $(EXTRACTED_DIR)
 
 build: $(HOOKS_OBJ) $(OBJ)
+	$(ROM_PATCHER) -e $(EXTRACTED_DIR) -o $(OBJ) -m $(OVLGZ_SIZE) -j $(HOOKS_OBJ) -n $(HOOKS_SIZE) -a $(OVLGZ_ADDR)
 	$(ARMIPS) hooks/setup.asm $(ARMIPS_ARGS)
-	$(ROM_PATCHER) -e $(EXTRACTED_DIR)
 	$(DSROM) build --config $(EXTRACTED_DIR)/config.yaml --rom $(OUT_ROM)
 
 venv:
