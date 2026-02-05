@@ -70,12 +70,13 @@ else
 $(error "Region not supported: $(REGION)")
 endif
 
+EXTRACTED_REL := ../../../$(EXTRACTED_DIR)
 ARMIPS_ARGS ?= \
-				-strequ OVL018_BIN "../$(EXTRACTED_DIR)/arm9_overlays/ov018.bin" \
-				-strequ OVL018_MOD_BIN "../$(EXTRACTED_DIR)/arm9_overlays/ov018_mod.bin" \
-				-strequ OVLGZ_BIN "../$(EXTRACTED_DIR)/arm9_overlays/ovgz.bin" \
-				-strequ ARM9_BIN "../$(EXTRACTED_DIR)/arm9/arm9.bin" \
-				-strequ ARM9_MOD_BIN "../$(EXTRACTED_DIR)/arm9/arm9_mod.bin" \
+				-strequ OVL018_BIN "$(EXTRACTED_REL)/arm9_overlays/ov018.bin" \
+				-strequ OVL018_MOD_BIN "$(EXTRACTED_REL)/arm9_overlays/ov018_mod.bin" \
+				-strequ OVLGZ_BIN "$(EXTRACTED_REL)/arm9_overlays/ovgz.bin" \
+				-strequ ARM9_BIN "$(EXTRACTED_REL)/arm9/arm9.bin" \
+				-strequ ARM9_MOD_BIN "$(EXTRACTED_REL)/arm9/arm9_mod.bin" \
 				-equ OVL018_ADDR $(OVL018_ADDR) \
 				-equ OVLGZ_ADDR $(OVLGZ_ADDR) \
 				-equ OVLGZ_SIZE $(OVLGZ_SIZE) \
@@ -92,8 +93,8 @@ extract:
 	$(DSROM) extract --rom $(EXTRACT_DIR)/baserom_st_$(REGION).nds --path $(EXTRACTED_DIR)
 
 build: $(HOOKS_OBJ) $(OBJ)
-	$(ROM_PATCHER) -e $(EXTRACTED_DIR) -o $(OBJ) -m $(OVLGZ_SIZE) -j $(HOOKS_OBJ) -n $(HOOKS_SIZE) -a $(OVLGZ_ADDR)
-	$(ARMIPS) hooks/setup.asm $(ARMIPS_ARGS)
+	$(ROM_PATCHER) -e $(EXTRACTED_DIR) -o $(OBJ) -m $(OVLGZ_SIZE) -j $(HOOKS_OBJ) -n $(HOOKS_SIZE) -a $(OVLGZ_ADDR) -d $(HOOKS_BUILD_DIR)
+	$(ARMIPS) $(HOOKS_BUILD_DIR)/setup.asm $(ARMIPS_ARGS)
 	$(DSROM) build --config $(EXTRACTED_DIR)/config.yaml --rom $(OUT_ROM)
 
 venv:

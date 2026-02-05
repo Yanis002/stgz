@@ -23,17 +23,18 @@ class Symbol:
 
 
 class SetupASM:
-    def __init__(self, obj_list: list[str], hooks_obj_list: list[str]):
+    def __init__(self, obj_list: list[str], hooks_obj_list: list[str], hooks_build_dir: Path):
         self.entries: list[Symbol] = []
         self.obj_list = obj_list
         self.hooks_obj_list = hooks_obj_list
+        self.hooks_build_dir = hooks_build_dir
 
     @staticmethod
-    def new(json_path: Path, version: str, obj_list: list[str], hooks_obj_list: list[str]):
+    def new(json_path: Path, version: str, obj_list: list[str], hooks_obj_list: list[str], hooks_build_dir: Path):
         assert json_path.exists(), "symbols data not found"
         symbols_json = json.loads(json_path.read_text())
 
-        setupASM = SetupASM(obj_list, hooks_obj_list)
+        setupASM = SetupASM(obj_list, hooks_obj_list, hooks_build_dir)
         for sym_name, sym_addr in symbols_json[version].items():
             setupASM.entries.append(Symbol(sym_name, int(sym_addr, base=16)))
         
@@ -87,7 +88,9 @@ class SetupASM:
         return "\n".join(lines)
 
     def write(self):
-        Path("hooks/setup.asm").resolve().write_text(self.to_asm())
+        self.hooks_build_dir.mkdir(exist_ok=True)
+        setup_asm_file = self.hooks_build_dir / "setup.asm"
+        setup_asm_file.resolve().write_text(self.to_asm())
         print("setup.asm is OK!")
 
 
@@ -117,12 +120,13 @@ def patch_arm9(extracted_dir: Path, base_addr: int, offset: int):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--extract", "-e", type=Path, required=True)
+    parser.add_argument("-e", "--extract", type=Path, required=True)
     parser.add_argument("-o", "--obj_list", dest="obj_list", nargs="+", help="list of .o file paths", required=True)
     parser.add_argument("-m", "--main_max_size", required=True)
     parser.add_argument("-j", "--hooks_obj_list", dest="hooks_obj_list", nargs="+", help="list of .o hooks file paths", required=True)
     parser.add_argument("-n", "--hooks_max_size", required=True)
     parser.add_argument("-a", "--address", required=True)
+    parser.add_argument("-d", "--hooks_build_dir", type=Path, required=True)
     args = parser.parse_args()
 
     main_max_size = int(args.main_max_size, base=16)
@@ -138,8 +142,8 @@ def main():
     patch_arm9(extracted_path, int(args.address, base=16), main_max_size)
 
     # generate setup.asm
-    setupASM = SetupASM.new(Path("symbols.json").resolve(), extracted_path.stem, args.obj_list, args.hooks_obj_list)
-    setupASM.write()
+    setup_asm = SetupASM.new(Path("symbols.json").resolve(), extracted_path.stem, args.obj_list, args.hooks_obj_list, args.hooks_build_dir)
+    setup_asm.write()
 
 
 if __name__ == "__main__":
