@@ -1,0 +1,12 @@
+# workspace folders
+.vscode
+__pycache__
+.venv
+tools/armips
+extract/eu
+extract/jp
+extract/us
+build/
+
+# workspace files
+*.nds
