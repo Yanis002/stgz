@@ -33,7 +33,7 @@ ARMIPS ?= $(ARMIPS_DIR)/build/armips
 
 # compiler settings
 CC := arm-none-eabi-gcc
-CPP_DEFINES :=
+CPP_DEFINES := -DGZ_OVL_ID=114
 CFLAGS := -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -fno-inline -Wall -Os -I include $(CPP_DEFINES)
 
 # main source/objects
@@ -62,8 +62,9 @@ OVLGZ_SIZE := 0x20000
 ifeq ($(REGION),eur)
 OVL018_ADDR := 0x020C4840
 OVLGZ_ADDR := 0x0218A380
-HOOK_RTCINIT := 0x020C4E90
 ARM9_NEW_CODE_STORE_ADDR := 0x02044D24
+HOOK_INIT := 0x020C4E90
+HOOK_UPDATE := 0x02013464
 else
 $(error "Region not supported: $(REGION)")
 endif
@@ -78,7 +79,8 @@ ARMIPS_ARGS ?= \
 				-equ OVLGZ_ADDR $(OVLGZ_ADDR) \
 				-equ OVLGZ_SIZE $(OVLGZ_SIZE) \
 				-equ ARM9_NEW_CODE_STORE_ADDR $(ARM9_NEW_CODE_STORE_ADDR) \
-				-equ HOOK_RTCINIT $(HOOK_RTCINIT)
+				-equ HOOK_UPDATE $(HOOK_UPDATE) \
+				-equ HOOK_INIT $(HOOK_INIT)
 
 ### project targets ###
 

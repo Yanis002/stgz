@@ -9,3 +9,7 @@ build/
 
 # workspace files
 *.nds
+
+# melonDS files
+*.sav
+*.ml*
