@@ -24,10 +24,12 @@ Basically, if you're familiar with the [practice tools from OoT](https://github.
 You will need the following packages/tools:
 - `git`
 - `make`
+- `cmake`
 - `gcc-arm-none-eabi`
 
 Steps:
 - Place a baserom in the `extract` folder and name it `baserom_st_REGION.nds`, `REGION` being `eur`, `us` or `jp` (Note: only the european version is supported currently).
+- `git submodule update --init --recursive`
 - `make init`
 - `make setup`
 - `make`

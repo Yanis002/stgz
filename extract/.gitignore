@@ -1,1 +1,12 @@
-*/
+# ignore these
+*/files/
+*/arm9_overlays/*.bin
+*/arm7/
+*/arm9/
+*.yaml
+*.png
+*.txt
+
+# track those
+!overlays.yaml
+!config.yaml

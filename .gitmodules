@@ -1,0 +1,3 @@
+[submodule "tools/armips"]
+	path = tools/armips
+	url = https://github.com/Kingcom/armips
