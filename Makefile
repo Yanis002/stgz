@@ -1,8 +1,14 @@
 MAKEFLAGS += --no-builtin-rules
 
+# disable ds-rom output
+export RUST_LOG = ds_rom::rom::rom=warn
+
 # Ensure the build fails if a piped command fails
 SHELL = /usr/bin/env bash
 .SHELLFLAGS = -o pipefail -c
+
+# path to decomp, defaults to the submodule's path
+DECOMP_DIR ?= resources/decomp
 
 # game region, only eur is supported atm
 REGION := eur
@@ -34,12 +40,14 @@ ARMIPS ?= $(ARMIPS_DIR)/build/armips
 # compiler settings
 CC := arm-none-eabi-gcc
 CPP_DEFINES := -DGZ_OVL_ID=114
-CFLAGS := -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -fno-inline -Wall -Os -I include $(CPP_DEFINES)
+CFLAGS := -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -fno-inline -Wall -Os -I include -I $(DECOMP_DIR)/include $(CPP_DEFINES)
+CPP_FLAGS := $(CFLAGS)
 
 # main source/objects
 BUILD_DIR := build/$(REGION)
-SRC := $(wildcard src/*.c)
-OBJ := $(foreach f,$(SRC),$(BUILD_DIR)/$(f:.c=.o))
+C_FILES := $(wildcard src/*.c)
+CPP_FILES := $(wildcard src/*.cpp)
+OBJ := $(foreach f,$(C_FILES),$(BUILD_DIR)/$(f:.c=.o)) $(foreach f,$(CPP_FILES),$(BUILD_DIR)/$(f:.cpp=.o))
 
 # hooks source/objects
 HOOKS_BUILD_DIR := hooks/build/$(REGION)
@@ -88,6 +96,7 @@ ARMIPS_ARGS ?= \
 ### project targets ###
 
 all: build
+	$(DSROM) build --config $(EXTRACTED_DIR)/config.yaml --rom $(OUT_ROM)
 
 extract:
 	$(DSROM) extract --rom $(EXTRACT_DIR)/baserom_st_$(REGION).nds --path $(EXTRACTED_DIR)
@@ -95,7 +104,6 @@ extract:
 build: $(HOOKS_OBJ) $(OBJ)
 	$(ROM_PATCHER) -e $(EXTRACTED_DIR) -o $(OBJ) -m $(OVLGZ_SIZE) -j $(HOOKS_OBJ) -n $(HOOKS_SIZE) -a $(OVLGZ_ADDR) -d $(HOOKS_BUILD_DIR)
 	$(ARMIPS) $(HOOKS_BUILD_DIR)/setup.asm $(ARMIPS_ARGS)
-	$(DSROM) build --config $(EXTRACTED_DIR)/config.yaml --rom $(OUT_ROM)
 
 venv:
 # Create the virtual environment if it doesn't exist.
@@ -104,7 +112,10 @@ venv:
 	$(PYTHON) -m pip install -U pip
 	$(PYTHON) -m pip install -U -r tools/requirements.txt
 
-init: venv
+gensyms:
+	$(PYTHON) tools/gen_symbols.py -d $(DECOMP_DIR)
+
+init: venv gensyms
 	sha1sum -c $(EXTRACT_DIR)/baserom_st_$(REGION).sha1
 	$(DL_TOOL) dsrom v0.6.1
 ifeq ("$(wildcard $(ARMIPS_DIR))", "")
@@ -117,7 +128,7 @@ endif
 
 setup: extract
 
-.PHONY: build extract init setup venv
+.PHONY: build extract gensyms init setup venv
 
 ### misc project recipes ###
 
@@ -128,6 +139,10 @@ $(BUILD_DIR)/src/%.asm: src/%.c
 # compile C source file to object file
 $(BUILD_DIR)/src/%.o: src/%.c
 	$(CC) $(CFLAGS) -c "$<" -o "$@"
+
+# compile C++ source file to object file
+$(BUILD_DIR)/src/%.o: src/%.cpp
+	$(CC) $(CPP_FLAGS) -c "$<" -o "$@"
 
 # compile C source file to object file
 $(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.c

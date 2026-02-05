@@ -4,7 +4,6 @@
 
 import argparse
 import json
-import copy
 import subprocess
 import struct
 
@@ -142,7 +141,7 @@ def main():
     patch_arm9(extracted_path, int(args.address, base=16), main_max_size)
 
     # generate setup.asm
-    setup_asm = SetupASM.new(Path("symbols.json").resolve(), extracted_path.stem, args.obj_list, args.hooks_obj_list, args.hooks_build_dir)
+    setup_asm = SetupASM.new(Path("build/symbols.json").resolve(), extracted_path.stem, args.obj_list, args.hooks_obj_list, args.hooks_build_dir)
     setup_asm.write()
 
 

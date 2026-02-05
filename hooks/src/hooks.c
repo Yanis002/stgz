@@ -5,6 +5,9 @@
  * Make sure to make it as small as possible!
  */
 
+//! TODO: remove when decomp names this
+#define RTC_Init func_0202ff34
+
 extern void FS_LoadOverlay(int param1, int overlayID);
 extern void RTC_Init();
 extern void func_02014d98(void* param1);

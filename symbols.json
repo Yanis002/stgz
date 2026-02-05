@@ -1,8 +1,0 @@
-{
-    "eur": {
-        "FS_LoadOverlay":" 0x0202DC08",
-        "RTC_Init": "0x0202FF34",
-        "func_02014d98": "0x02014D98",
-        "data_02049bd4": "0x02049BD4"
-    }
-}
