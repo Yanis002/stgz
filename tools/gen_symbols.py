@@ -15,16 +15,14 @@ def main():
     parser.add_argument("-d", "--decomp", type=Path, required=True)
     args = parser.parse_args()
 
-    symbols_path = Path("build/symbols.json").resolve()
-
     decomp_path: Path = args.decomp.resolve()
     config_path = decomp_path / "config"
 
     versions = [Path(path).stem for path, _, _ in os.walk(str(config_path)) if Path(path).parent.name == config_path.name]
 
-    out_json = {}
+    out_libs = {}
     for version in versions:
-        out_json[version] = {}
+        out_libs[version] = ""
 
     for version in versions:
         ver_cfg_path = config_path / version
@@ -50,10 +48,15 @@ def main():
                 assert addr_match is not None, f"address of {sym_name} not found"
                 sym_addr = f"0x{addr_match.group(1).upper()}"
 
-                out_json[version][sym_name] = sym_addr
+                out_libs[version] += f"{sym_name} = {sym_addr};\n"
 
-    with symbols_path.open("w") as f:
-        json.dump(out_json, f, indent=2)
+    libs_dir = Path("libs").resolve()
+    libs_dir.mkdir(exist_ok=True)
+
+    for version in versions:
+        symbols_path = libs_dir / f"libst-{version}.a"
+        symbols_path.write_text(out_libs[version])
+        print(f"libst-{version}.a is OK!")
 
 if __name__ == "__main__":
     main()

@@ -45,28 +45,18 @@ class Symbol:
 
     def to_asm(self):
         return f".definelabel {self.name}, 0x{self.addr:08X}"
-    
-    def to_txt(self):
-        return f"{self.name} = 0x{self.addr:08X};\n"
 
 
 class SetupASM:
-    def __init__(self, obj_list: list[str], hooks_obj_list: list[str], hooks_build_dir: Path):
-        self.entries: list[Symbol] = []
+    def __init__(self, obj_list: list[str], hooks_obj_list: list[str], hooks_build_dir: Path, version: str):
         self.obj_list = obj_list
         self.hooks_obj_list = hooks_obj_list
         self.hooks_build_dir = hooks_build_dir
+        self.version = version
 
     @staticmethod
-    def new(json_path: Path, version: str, obj_list: list[str], hooks_obj_list: list[str], hooks_build_dir: Path):
-        assert json_path.exists(), "symbols data not found"
-        symbols_json = json.loads(json_path.read_text())
-
-        setupASM = SetupASM(obj_list, hooks_obj_list, hooks_build_dir)
-        for sym_name, sym_addr in symbols_json[version].items():
-            setupASM.entries.append(Symbol(sym_name, int(sym_addr, base=16)))
-        
-        return setupASM
+    def new(version: str, obj_list: list[str], hooks_obj_list: list[str], hooks_build_dir: Path):
+        return SetupASM(obj_list, hooks_obj_list, hooks_build_dir, version)
 
     def to_asm(self):
         # not sure yet if it's a good idea to generate this entire file but whatever
@@ -112,21 +102,12 @@ class SetupASM:
         ]
 
         return "\n".join(lines)
-    
-    def to_txt(self):
-        return "".join(sym.to_txt() for sym in self.entries)
 
     def write(self):
         self.hooks_build_dir.mkdir(exist_ok=True)
         setup_asm_file = self.hooks_build_dir / "setup.asm"
         setup_asm_file.resolve().write_text(self.to_asm())
         print("setup.asm is OK!")
-
-        libs_dir = Path("libs").resolve()
-        libs_dir.mkdir(exist_ok=True)
-        lib_file = libs_dir / "libst.a"
-        lib_file.resolve().write_text(self.to_txt())
-        print("libst.a is OK!")
 
 
 def check_code_size(obj_list: list[str], max_size: int, kind: str):
@@ -167,7 +148,7 @@ def main():
     patch_arm9(extracted_path, int(args.address, base=16), main_max_size)
 
     # generate setup.asm
-    setup_asm = SetupASM.new(Path("build/symbols.json").resolve(), extracted_path.stem, args.obj_list, args.hooks_obj_list, args.hooks_build_dir)
+    setup_asm = SetupASM.new(extracted_path.stem, args.obj_list, args.hooks_obj_list, args.hooks_build_dir)
     setup_asm.write()
 
 

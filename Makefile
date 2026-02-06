@@ -59,7 +59,7 @@ ELF := $(BUILD_DIR)/ovgz.elf
 BIN := $(ELF:.elf=.bin)
 MAP := $(ELF:.elf=.map)
 LD := $(CC)
-LDFLAGS := -T libs/ovgz.ld -Llibs -lst -Wl,-Map,$(MAP) -specs=nosys.specs -Wl,--gc-sections --use-blx
+LDFLAGS := -T libs/ovgz.ld -Llibs -lst-$(REGION) -Wl,-Map,$(MAP) -specs=nosys.specs -Wl,--gc-sections -Wl,--use-blx
 OBJCOPY := arm-none-eabi-objcopy
 
 # create output directories
@@ -90,12 +90,9 @@ EXTRACTED_REL := ../../../$(EXTRACTED_DIR)
 ARMIPS_ARGS ?= \
 				-strequ OVL018_BIN "$(EXTRACTED_REL)/arm9_overlays/ov018.bin" \
 				-strequ OVL018_MOD_BIN "$(EXTRACTED_REL)/arm9_overlays/ov018_mod.bin" \
-				-strequ OVLGZ_BIN "$(EXTRACTED_REL)/arm9_overlays/ovgz.bin" \
 				-strequ ARM9_BIN "$(EXTRACTED_REL)/arm9/arm9.bin" \
 				-strequ ARM9_MOD_BIN "$(EXTRACTED_REL)/arm9/arm9_mod.bin" \
 				-equ OVL018_ADDR $(OVL018_ADDR) \
-				-equ OVLGZ_ADDR $(OVLGZ_ADDR) \
-				-equ OVLGZ_SIZE $(OVLGZ_SIZE) \
 				-equ HOOKS_SIZE $(HOOKS_SIZE) \
 				-equ ARM9_NEW_CODE_STORE_ADDR $(ARM9_NEW_CODE_STORE_ADDR) \
 				-equ HOOK_UPDATE $(HOOK_UPDATE) \
@@ -120,10 +117,10 @@ venv:
 	$(PYTHON) -m pip install -U pip
 	$(PYTHON) -m pip install -U -r tools/requirements.txt
 
-gensyms:
+libs:
 	$(PYTHON) tools/gen_symbols.py -d $(DECOMP_DIR)
 
-init: venv gensyms
+init: venv libs
 	sha1sum -c $(EXTRACT_DIR)/baserom_st_$(REGION).sha1
 	$(DL_TOOL) dsrom v0.6.1
 ifeq ("$(wildcard $(ARMIPS_DIR))", "")
@@ -136,7 +133,10 @@ endif
 
 setup: extract
 
-.PHONY: build extract gensyms init setup venv
+clean:
+	$(RM) $(ELF) $(BIN) $(MAP) $(OBJ) $(HOOKS_OBJ) $(OUT_ROM)
+
+.PHONY: build clean extract libs init setup venv
 
 ### misc project recipes ###
 
