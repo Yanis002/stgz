@@ -12,13 +12,42 @@ from pathlib import Path
 
 INDENT = " " * 4
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-e", "--extract", type=Path, required=True)
+parser.add_argument("-o", "--obj_list", dest="obj_list", nargs="+", help="list of .o file paths", required=True)
+parser.add_argument("-m", "--main_max_size", required=True)
+parser.add_argument("-j", "--hooks_obj_list", dest="hooks_obj_list", nargs="+", help="list of .o hooks file paths", required=True)
+parser.add_argument("-n", "--hooks_max_size", required=True)
+parser.add_argument("-a", "--address", required=True)
+parser.add_argument("-d", "--hooks_build_dir", type=Path, required=True)
+parser.add_argument("--elf", required=True)
+parser.add_argument("--bin", required=True)
+args = parser.parse_args()
+
 @dataclass
 class Symbol:
     name: str
     addr: int
 
+    @staticmethod
+    def new(name: str):
+        lines = subprocess.check_output(["arm-none-eabi-nm", args.elf], text=True).split("\n")
+
+        found = False
+        for line in lines:
+            if name in line:
+                found = True
+                break
+
+        assert found, "symbol not found!"
+        print(line)
+        return Symbol(name, int(line.split(" ")[0], base=16))
+
     def to_asm(self):
-        return f".definelabel {self.name}, 0x{self.addr:08X}\n"
+        return f".definelabel {self.name}, 0x{self.addr:08X}"
+    
+    def to_txt(self):
+        return f"{self.name} = 0x{self.addr:08X};\n"
 
 
 class SetupASM:
@@ -49,15 +78,13 @@ class SetupASM:
             ".relativeinclude on",
             ".erroronwarning on\n",
 
-            "".join(sym.to_asm() for sym in self.entries),
+            Symbol.new("FS_LoadOverlay").to_asm(),
+            Symbol.new("GZ_Init").to_asm(),
+            Symbol.new("func_0202ff34").to_asm(),
 
-            "; create gz overlay data",
-            ".open OVLGZ_BIN, OVLGZ_ADDR",
-            INDENT + f".org OVLGZ_ADDR",
-            INDENT * 2 + f".area OVLGZ_SIZE, 0xEE",
-            INDENT * 3 + f"\n{INDENT * 3}".join(f'.importobj "{obj}"' for obj in self.obj_list),
-            INDENT * 2 + f".endarea",
-            f".close\n",
+            Symbol.new("GZ_Update").to_asm(),
+            Symbol.new("data_02049bd4").to_asm(),
+            Symbol.new("func_02014d98").to_asm() + "\n",
 
             ".open ARM9_BIN, ARM9_MOD_BIN, 0x02000000",
             INDENT + "; load the hooks into the main module",
@@ -85,12 +112,21 @@ class SetupASM:
         ]
 
         return "\n".join(lines)
+    
+    def to_txt(self):
+        return "".join(sym.to_txt() for sym in self.entries)
 
     def write(self):
         self.hooks_build_dir.mkdir(exist_ok=True)
         setup_asm_file = self.hooks_build_dir / "setup.asm"
         setup_asm_file.resolve().write_text(self.to_asm())
         print("setup.asm is OK!")
+
+        libs_dir = Path("libs").resolve()
+        libs_dir.mkdir(exist_ok=True)
+        lib_file = libs_dir / "libst.a"
+        lib_file.resolve().write_text(self.to_txt())
+        print("libst.a is OK!")
 
 
 def check_code_size(obj_list: list[str], max_size: int, kind: str):
@@ -118,16 +154,6 @@ def patch_arm9(extracted_dir: Path, base_addr: int, offset: int):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-e", "--extract", type=Path, required=True)
-    parser.add_argument("-o", "--obj_list", dest="obj_list", nargs="+", help="list of .o file paths", required=True)
-    parser.add_argument("-m", "--main_max_size", required=True)
-    parser.add_argument("-j", "--hooks_obj_list", dest="hooks_obj_list", nargs="+", help="list of .o hooks file paths", required=True)
-    parser.add_argument("-n", "--hooks_max_size", required=True)
-    parser.add_argument("-a", "--address", required=True)
-    parser.add_argument("-d", "--hooks_build_dir", type=Path, required=True)
-    args = parser.parse_args()
-
     main_max_size = int(args.main_max_size, base=16)
     extracted_path: Path = args.extract.resolve()
 

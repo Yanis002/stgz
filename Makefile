@@ -19,6 +19,7 @@ MAKE = make
 MKDIR ?= mkdir
 CMAKE ?= cmake
 RM ?= rm
+CP ?= cp -v
 
 # python
 VENV := .venv
@@ -37,12 +38,6 @@ DSROM := tools/dsrom
 ARMIPS_DIR := tools/armips
 ARMIPS ?= $(ARMIPS_DIR)/build/armips
 
-# compiler settings
-CC := arm-none-eabi-gcc
-CPP_DEFINES := -DGZ_OVL_ID=114
-CFLAGS := -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -fno-inline -Wall -Os -I include -I $(DECOMP_DIR)/include $(CPP_DEFINES)
-CPP_FLAGS := $(CFLAGS)
-
 # main source/objects
 BUILD_DIR := build/$(REGION)
 C_FILES := $(wildcard src/*.c)
@@ -53,6 +48,19 @@ OBJ := $(foreach f,$(C_FILES),$(BUILD_DIR)/$(f:.c=.o)) $(foreach f,$(CPP_FILES),
 HOOKS_BUILD_DIR := hooks/build/$(REGION)
 HOOKS_SRC := $(wildcard hooks/src/*.c)
 HOOKS_OBJ := $(foreach f,$(HOOKS_SRC:hooks/%=%),$(HOOKS_BUILD_DIR)/$(f:.c=.o))
+
+# compiler settings
+CC := arm-none-eabi-gcc -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -nostdlib -nodefaultlibs -nostartfiles
+CPP_DEFINES := -DGZ_OVL_ID=114
+CFLAGS := -Wall -Os -fno-short-enums -fomit-frame-pointer -ffast-math -fno-builtin -I include -I $(DECOMP_DIR)/include $(CPP_DEFINES)
+CPP_FLAGS := $(CFLAGS) -fno-rtti -fno-exceptions
+
+ELF := $(BUILD_DIR)/ovgz.elf
+BIN := $(ELF:.elf=.bin)
+MAP := $(ELF:.elf=.map)
+LD := $(CC)
+LDFLAGS := -T libs/ovgz.ld -Llibs -lst -Wl,-Map,$(MAP) -specs=nosys.specs -Wl,--gc-sections --use-blx
+OBJCOPY := arm-none-eabi-objcopy
 
 # create output directories
 $(shell mkdir -p $(BUILD_DIR)/src)
@@ -101,8 +109,8 @@ all: build
 extract:
 	$(DSROM) extract --rom $(EXTRACT_DIR)/baserom_st_$(REGION).nds --path $(EXTRACTED_DIR)
 
-build: $(HOOKS_OBJ) $(OBJ)
-	$(ROM_PATCHER) -e $(EXTRACTED_DIR) -o $(OBJ) -m $(OVLGZ_SIZE) -j $(HOOKS_OBJ) -n $(HOOKS_SIZE) -a $(OVLGZ_ADDR) -d $(HOOKS_BUILD_DIR)
+build: $(HOOKS_OBJ) $(BIN)
+	$(ROM_PATCHER) -e $(EXTRACTED_DIR) -o $(OBJ) -m $(OVLGZ_SIZE) -j $(HOOKS_OBJ) -n $(HOOKS_SIZE) -a $(OVLGZ_ADDR) -d $(HOOKS_BUILD_DIR) --elf $(ELF) --bin $(BIN)
 	$(ARMIPS) $(HOOKS_BUILD_DIR)/setup.asm $(ARMIPS_ARGS)
 
 venv:
@@ -134,7 +142,7 @@ setup: extract
 
 # compile C source file to assembly code
 $(BUILD_DIR)/src/%.asm: src/%.c
-	$(CC) $(CFLAGS) -S "$<" -o "$@" -fverbose-asm
+	$(CC) $(CFLAGS) -S "$<" -o "$@" -fverbose-asm -Os -x assembler-with-cpp -fomit-frame-pointer
 
 # compile C source file to object file
 $(BUILD_DIR)/src/%.o: src/%.c
@@ -147,3 +155,10 @@ $(BUILD_DIR)/src/%.o: src/%.cpp
 # compile C source file to object file
 $(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.c
 	$(CC) $(CFLAGS) -c "$<" -o "$@"
+
+$(ELF): $(OBJ)
+	$(LD) $(LDFLAGS) -o $@ $<
+
+$(BIN): $(ELF)
+	$(OBJCOPY) -S -O binary $< $@
+	$(CP) $@ $(EXTRACTED_DIR)/arm9_overlays/ovgz.bin

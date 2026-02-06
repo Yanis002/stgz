@@ -6,6 +6,7 @@ extract/eu
 extract/jp
 extract/us
 build/
+libs/*.a
 
 # workspace files
 *.nds
