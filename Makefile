@@ -40,9 +40,10 @@ ARMIPS ?= $(ARMIPS_DIR)/build/armips
 
 # main source/objects
 BUILD_DIR := build/$(REGION)
+ASM_FILES := $(wildcard src/*.s)
 C_FILES := $(wildcard src/*.c)
 CPP_FILES := $(wildcard src/*.cpp)
-OBJ := $(foreach f,$(C_FILES),$(BUILD_DIR)/$(f:.c=.o)) $(foreach f,$(CPP_FILES),$(BUILD_DIR)/$(f:.cpp=.o))
+OBJ := $(foreach f,$(ASM_FILES),$(BUILD_DIR)/$(f:.s=.o)) $(foreach f,$(C_FILES),$(BUILD_DIR)/$(f:.c=.o)) $(foreach f,$(CPP_FILES),$(BUILD_DIR)/$(f:.cpp=.o)) $(BUILD_DIR)/thumb-$(REGION).o
 
 # hooks source/objects
 HOOKS_BUILD_DIR := hooks/build/$(REGION)
@@ -53,13 +54,13 @@ HOOKS_OBJ := $(foreach f,$(HOOKS_SRC:hooks/%=%),$(HOOKS_BUILD_DIR)/$(f:.c=.o))
 CC := arm-none-eabi-gcc -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -nostdlib -nodefaultlibs -nostartfiles
 CPP_DEFINES := -DGZ_OVL_ID=114
 CFLAGS := -Wall -Os -fno-short-enums -fomit-frame-pointer -ffast-math -fno-builtin -I include -I $(DECOMP_DIR)/include $(CPP_DEFINES)
-CPP_FLAGS := $(CFLAGS) -fno-rtti -fno-exceptions
+CPP_FLAGS := $(CFLAGS) -fno-rtti -fno-exceptions -std=c++2c
 
 ELF := $(BUILD_DIR)/ovgz.elf
 BIN := $(ELF:.elf=.bin)
 MAP := $(ELF:.elf=.map)
 LD := $(CC)
-LDFLAGS := -T libs/ovgz.ld -Llibs -lst-$(REGION) -Wl,-Map,$(MAP) -specs=nosys.specs -Wl,--gc-sections -Wl,--use-blx
+LDFLAGS := -T libs/ovgz.ld -Llibs -lst-$(REGION) -Wl,-Map,$(MAP) -specs=nosys.specs -Wl,--gc-sections
 OBJCOPY := arm-none-eabi-objcopy
 
 # create output directories
@@ -118,7 +119,7 @@ venv:
 	$(PYTHON) -m pip install -U -r tools/requirements.txt
 
 libs:
-	$(PYTHON) tools/gen_libs.py -d $(DECOMP_DIR)
+	$(PYTHON) tools/gen_libs.py -d $(DECOMP_DIR) -b build
 
 init: venv libs
 	sha1sum -c $(EXTRACT_DIR)/baserom_st_$(REGION).sha1
@@ -140,9 +141,13 @@ clean:
 
 ### misc project recipes ###
 
-# compile C source file to assembly code
-$(BUILD_DIR)/src/%.asm: src/%.c
-	$(CC) $(CFLAGS) -S "$<" -o "$@" -fverbose-asm -Os -x assembler-with-cpp -fomit-frame-pointer
+# process auto-generated thumb definitions (necessary to avoid crashes when calling thumb functions)
+$(BUILD_DIR)/thumb-$(REGION).o: build/thumb-$(REGION).s
+	$(CC) $(CFLAGS) -fverbose-asm -Os -x assembler-with-cpp -fomit-frame-pointer -c "$<" -o "$@"
+
+# compile S source file to assembly code
+$(BUILD_DIR)/src/%.o: src/%.s
+	$(CC) $(CFLAGS) -fverbose-asm -Os -x assembler-with-cpp -fomit-frame-pointer -c "$<" -o "$@"
 
 # compile C source file to object file
 $(BUILD_DIR)/src/%.o: src/%.c
@@ -157,7 +162,7 @@ $(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.c
 	$(CC) $(CFLAGS) -c "$<" -o "$@"
 
 $(ELF): $(OBJ)
-	$(LD) $(LDFLAGS) -o $@ $<
+	$(LD) -o $@ $^ $(LDFLAGS)
 
 $(BIN): $(ELF)
 	$(OBJCOPY) -S -O binary $< $@

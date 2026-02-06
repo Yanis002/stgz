@@ -13,6 +13,7 @@ from pathlib import Path
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--decomp", type=Path, required=True)
+    parser.add_argument("-b", "--build_dir", type=Path, required=True)
     args = parser.parse_args()
 
     decomp_path: Path = args.decomp.resolve()
@@ -21,8 +22,10 @@ def main():
     versions = [Path(path).stem for path, _, _ in os.walk(str(config_path)) if Path(path).parent.name == config_path.name]
 
     out_libs = {}
+    out_thumbs = {}
     for version in versions:
         out_libs[version] = ""
+        out_thumbs[version] = ""
 
     for version in versions:
         ver_cfg_path = config_path / version
@@ -44,19 +47,44 @@ def main():
                 if "sinit" in sym_name or sym_name.startswith("@") or is_local or sym_name == "Sqrt":
                     continue
 
+                kind_match = re.search(r"kind:function\(([a-zA-Z]*),", line)
+                is_thumb_func = kind_match is not None and kind_match.group(1) == "thumb"
+
                 addr_match = re.search(r"addr:0x([a-fA-F0-9]*)", line)
                 assert addr_match is not None, f"address of {sym_name} not found"
                 sym_addr = f"0x{addr_match.group(1).upper()}"
+                addr = int(sym_addr, 16)
 
-                out_libs[version] += f"{sym_name} = {sym_addr};\n"
+                if is_thumb_func:
+                    addr += 1
+                    out_thumbs[version] += f"thumb_func {sym_name}, 0x{addr:08X}\n"
+
+                out_libs[version] += f"{sym_name} = 0x{addr:08X};\n"
 
     libs_dir = Path("libs").resolve()
     libs_dir.mkdir(exist_ok=True)
+
+    thumb_dir: Path = args.build_dir.resolve()
+    thumb_dir.mkdir(exist_ok=True, parents=True)
+
+    thumb_header = [
+        ".syntax unified\n",
+        ".macro thumb_func name, addr",
+        "    .global \\name",
+        "    .type \\name, %function",
+        "    .set \\name, \\addr",
+        ".endm\n\n",
+    ]
 
     for version in versions:
         symbols_path = libs_dir / f"libst-{version}.a"
         symbols_path.write_text(out_libs[version])
         print(f"libst-{version}.a is OK!")
+
+        thumbs_file = thumb_dir / f"thumb-{version}.s"
+        thumbs_file.write_text("\n".join(thumb_header) + out_thumbs[version])
+        print(f"thumb-{version}.s is OK!")
+
 
 if __name__ == "__main__":
     main()

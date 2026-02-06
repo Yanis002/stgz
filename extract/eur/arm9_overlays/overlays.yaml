@@ -1144,8 +1144,8 @@ overlays:
   base_address: 35169152
   code_size: 98304
   bss_size: 4096
-  ctor_start: 0
-  ctor_end: 0
+  ctor_start: 35275648
+  ctor_end: 35275904
   file_id: 114
   compressed: true
   signed: false
