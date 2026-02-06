@@ -118,7 +118,7 @@ venv:
 	$(PYTHON) -m pip install -U -r tools/requirements.txt
 
 libs:
-	$(PYTHON) tools/gen_symbols.py -d $(DECOMP_DIR)
+	$(PYTHON) tools/gen_libs.py -d $(DECOMP_DIR)
 
 init: venv libs
 	sha1sum -c $(EXTRACT_DIR)/baserom_st_$(REGION).sha1
