@@ -6,10 +6,14 @@
 
 #include <Unknown/UnkMemFuncs.h>
 
+extern "C" u8 _heap_start[];
+extern "C" u8 _overlay_end[];
+
 struct HeapHandler {
-    const int sHeapSize = 0x3F00;
-    const void* sHeapLo = (void*)0x021A6480;
-    const void* sHeapHi = (void*)((u8*)sHeapLo + sHeapSize);
+    u32 magic;
+    void* mHeapLo;
+    void* mHeapHi;
+    size_t mHeapSize;
 
     struct HeapSlot {
         u8 state;
@@ -46,13 +50,20 @@ struct HeapHandler {
     };
 
     HeapHandler() {
-        ((HeapSlot*)sHeapLo)->SetFree();
+        this->magic = 'HZGY';
+        this->mHeapLo = (void*)((u8*)_heap_start) + sizeof(HeapHandler);
+        this->mHeapHi = (void*)_overlay_end;
+        this->mHeapSize = _overlay_end - _heap_start;
+        ((HeapSlot*)this->mHeapLo)->SetFree();
+    }
+
+    size_t GetHeapSize() {
+        return this->mHeapSize;
     }
 
     HeapSlot* FindSlot(size_t size);
     void* Alloc(size_t size);
     void Free(void* ptr);
-    size_t GetHeapSize();
 };
 
 extern HeapHandler gHeapHandler;

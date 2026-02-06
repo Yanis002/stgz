@@ -3,9 +3,10 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import argparse
-import json
+import re
 import subprocess
 import struct
+import yaml
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,7 +22,7 @@ parser.add_argument("-n", "--hooks_max_size", required=True)
 parser.add_argument("-a", "--address", required=True)
 parser.add_argument("-d", "--hooks_build_dir", type=Path, required=True)
 parser.add_argument("--elf", required=True)
-parser.add_argument("--bin", required=True)
+parser.add_argument("--map", type=Path, required=True)
 args = parser.parse_args()
 
 @dataclass
@@ -134,6 +135,85 @@ def patch_arm9(extracted_dir: Path, base_addr: int, offset: int):
     arm9_file.write_bytes(arm9)
 
 
+def get_extra_overlay(file_id: int):
+    out = {"id": file_id}
+
+    map_path: Path = args.map.resolve()
+    assert map_path.exists(), "map file not found"
+    filedata = map_path.read_text()
+
+    data_match = re.search(r"\s*(0x[a-fA-F0-9]*)\s*_overlay_start = \.", filedata)
+    assert data_match is not None, "overlay start not found in the map"
+    out["base_address"] = int(data_match.group(1), base=16)
+
+    data_match = re.search(r"\.text\s*0x[a-fA-F0-9]*\s*(0x[a-fA-F0-9]*)\n", filedata)
+    assert data_match is not None, ".text size not found in the map"
+    out["code_size"] = int(data_match.group(1), base=16)
+
+    data_match = re.search(r"\.bss\s*0x[a-fA-F0-9]*\s*(0x[a-fA-F0-9]*)\n", filedata)
+    assert data_match is not None, ".bss size not found in the map"
+    out["bss_size"] = int(data_match.group(1), base=16)
+
+    data_match = re.search(r"\.ctor\s*(0x[a-fA-F0-9]*)\s*(0x[a-fA-F0-9]*)\n", filedata)
+    assert data_match is not None, ".ctor size not found in the map"
+    out["ctor_start"] = int(data_match.group(1), base=16)
+    out["ctor_end"] = out["ctor_start"] + int(data_match.group(2), base=16)
+
+    out["file_id"] = file_id
+    out["compressed"] = True
+    out["signed"] = False
+    out["file_name"] = f"{map_path.stem}.bin"
+    return out
+
+
+def update_yaml(extracted_dir: Path):
+    # update arm9.bin filename
+    config_yaml = extracted_dir / "config.yaml"
+
+    with open(config_yaml, "r", encoding="utf-8") as file:
+        yaml_file = yaml.safe_load(file)
+
+    if "_mod" not in yaml_file["arm9_bin"]:
+        yaml_file["arm9_bin"] = f"{yaml_file['arm9_bin'][:-4]}_mod.bin"
+
+        with open(config_yaml, "w", encoding="utf-8") as file:
+            yaml.safe_dump(yaml_file, file, sort_keys=False)
+
+    # add or update overlays
+    overlays_yaml = extracted_dir / "arm9_overlays" / "overlays.yaml"
+
+    with open(overlays_yaml, "r", encoding="utf-8") as file:
+        yaml_file = yaml.safe_load(file)
+
+    for overlay in yaml_file["overlays"]:
+        if overlay.get("id") == 18 and "_mod" not in overlay["file_name"]:
+            overlay["file_name"] = f"{overlay['file_name'].removesuffix('.bin')}_mod.bin"
+            break
+
+    is_extra_overlay_present = args.map.stem in yaml_file["overlays"][-1]["file_name"]
+    file_id = len(yaml_file["overlays"]) - 1 if is_extra_overlay_present else len(yaml_file["overlays"])
+    extra_overlay = get_extra_overlay(file_id)
+
+    if is_extra_overlay_present:
+        # extra overlay is there, update it
+        overlay = yaml_file["overlays"][-1]
+        overlay["base_address"] = extra_overlay["base_address"]
+        overlay["code_size"] = extra_overlay["code_size"]
+        overlay["bss_size"] = extra_overlay["bss_size"]
+        overlay["ctor_start"] = extra_overlay["ctor_start"]
+        overlay["ctor_end"] = extra_overlay["ctor_end"]
+        overlay["file_id"] = extra_overlay["file_id"]
+        overlay["compressed"] = extra_overlay["compressed"]
+        overlay["signed"] = extra_overlay["signed"]
+        overlay["file_name"] = extra_overlay["file_name"]
+    else:
+        # extra overlay is not there, add it
+        yaml_file["overlays"].append(extra_overlay)
+
+    with open(overlays_yaml, "w", encoding="utf-8") as file:
+        yaml.safe_dump(yaml_file, file, sort_keys=False)
+
+
 def main():
     main_max_size = int(args.main_max_size, base=16)
     extracted_path: Path = args.extract.resolve()
@@ -150,6 +230,9 @@ def main():
     # generate setup.asm
     setup_asm = SetupASM.new(extracted_path.stem, args.obj_list, args.hooks_obj_list, args.hooks_build_dir)
     setup_asm.write()
+
+    # update yaml files
+    update_yaml(extracted_path)
 
 
 if __name__ == "__main__":

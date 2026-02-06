@@ -3,44 +3,64 @@ OUTPUT_ARCH(arm)
 
 SECTIONS
 {
-    .text 0x0218A380 : {
+    . = 0x0218A380;
+
+    _overlay_start = .;
+    _overlay_end = _overlay_start + 0x20000;
+
+    __text_start = .;
+    .text : {
         KEEP(*(.text))
         *(.text.*)
         *(.glue_7)
         *(.glue_7t)
-        . = ALIGN(4);
+        . = ALIGN(32);
     }
+    __text_end = .;
 
-    .rodata 0x021A2380 : {
+    __rodata_start = .;
+    .rodata : {
         KEEP(*(.rodata))
         *(.rodata.*)
-        . = ALIGN(4);
+        . = ALIGN(32);
     }
+    __rodata_end = .;
 
-    .init 0x021A3380 : {
-        KEEP(*(.init))
-        . = ALIGN(4);
-    }
-
-    .ctor 0x021A4380 : {
-        KEEP(*(.ctor))
-        KEEP(*(.ctors))
-        KEEP(*(.init_array*))
-        . = ALIGN(4);
-    }
-
-    .data 0x021A4480 : {
+    __data_start = .;
+    .data : {
         KEEP(*(.data))
         *(.data.*)
-        . = ALIGN(4);
+        . = ALIGN(32);
     }
+    __data_end = .;
 
-    .bss 0x021A5480 : {
+    __bss_start = .;
+    __bss_end = .;
+    .bss : {
         KEEP(*(.bss))
         *(.bss.*)
         *(COMMON)
-        . = ALIGN(4);
+        . = ALIGN(32);
     }
+    __bss_end = .;
+
+    __init_start = .;
+    .init : {
+        KEEP(*(.init))
+        . = ALIGN(32);
+    }
+    __init_end = .;
+
+    __ctor_start = .;
+    .ctor : {
+        KEEP(*(.ctor))
+        KEEP(*(.ctors))
+        KEEP(*(.init_array*))
+        . = ALIGN(32);
+    }
+    __ctor_end = .;
+
+    _heap_start = .;
 
     /DISCARD/ : { 
         *(.comment) 

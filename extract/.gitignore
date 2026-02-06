@@ -6,7 +6,3 @@
 *.yaml
 *.png
 *.txt
-
-# track those
-!overlays.yaml
-!config.yaml

@@ -108,7 +108,7 @@ extract:
 	$(DSROM) extract --rom $(EXTRACT_DIR)/baserom_st_$(REGION).nds --path $(EXTRACTED_DIR)
 
 build: $(HOOKS_OBJ) $(BIN)
-	$(ROM_PATCHER) -e $(EXTRACTED_DIR) -o $(OBJ) -m $(OVLGZ_SIZE) -j $(HOOKS_OBJ) -n $(HOOKS_SIZE) -a $(OVLGZ_ADDR) -d $(HOOKS_BUILD_DIR) --elf $(ELF) --bin $(BIN)
+	$(ROM_PATCHER) -e $(EXTRACTED_DIR) -o $(OBJ) -m $(OVLGZ_SIZE) -j $(HOOKS_OBJ) -n $(HOOKS_SIZE) -a $(OVLGZ_ADDR) -d $(HOOKS_BUILD_DIR) --elf $(ELF) --map $(MAP)
 	$(ARMIPS) $(HOOKS_BUILD_DIR)/setup.asm $(ARMIPS_ARGS)
 
 venv:
