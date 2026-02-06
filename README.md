@@ -25,6 +25,8 @@ You will need the following packages/tools:
 - `git`
 - `make`
 - `cmake`
+- `arm-none-eabi-objcopy`
+- `arm-none-eabi-nm`
 - `gcc-arm-none-eabi`
 
 Steps:
