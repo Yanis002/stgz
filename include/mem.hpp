@@ -9,6 +9,9 @@
 extern "C" u8 _heap_start[];
 extern "C" u8 _overlay_end[];
 
+#define FREE 'EERF'
+#define USED 'DESU'
+
 struct HeapHandler {
     u32 magic;
     void* mHeapLo;
@@ -16,7 +19,7 @@ struct HeapHandler {
     size_t mHeapSize;
 
     struct HeapSlot {
-        u8 state;
+        u32 state;
         size_t size;
         HeapSlot* prev;
         HeapSlot* next;
@@ -30,15 +33,19 @@ struct HeapHandler {
         }
 
         void SetFree() {
-            this->state = 'F';
+            this->state = FREE;
         }
 
         void SetUsed() {
-            this->state = 'U';
+            this->state = USED;
         }
 
         bool IsFree() {
-            return this->state == 'F';
+            return this->state == FREE;
+        }
+
+        void Clear() {
+            memset(this->GetStart(), 0, this->size);
         }
 
         void Reset() {
@@ -51,7 +58,7 @@ struct HeapHandler {
 
     HeapHandler() {
         this->magic = 'HZGY';
-        this->mHeapLo = (void*)((u8*)_heap_start) + sizeof(HeapHandler);
+        this->mHeapLo = (void*)((u8*)_heap_start + sizeof(HeapHandler));
         this->mHeapHi = (void*)_overlay_end;
         this->mHeapSize = _overlay_end - _heap_start;
         ((HeapSlot*)this->mHeapLo)->SetFree();
@@ -69,11 +76,21 @@ struct HeapHandler {
 extern HeapHandler gHeapHandler;
 
 inline void* operator new(size_t size) {
-    if (size > gHeapHandler.GetHeapSize()) {
-        return NULL;
+    // abort if the requested size doesn't fit
+    if (size > gHeapHandler.GetHeapSize() || size == 0) {
+        size = 1;
     }
 
-    return gHeapHandler.Alloc(size);
+    // do the allocation with the requested size aligned
+    return gHeapHandler.Alloc((size + (4 - 1)) & ~(4 - 1));
+}
+
+inline void* operator new[](size_t size) {
+    if (size > gHeapHandler.GetHeapSize() || size == 0) {
+        size = 1;
+    }
+
+    return gHeapHandler.Alloc((size + (4 - 1)) & ~(4 - 1));
 }
 
 inline void operator delete(void* ptr) {
@@ -82,9 +99,20 @@ inline void operator delete(void* ptr) {
     }
 }
 
-inline void operator delete(void* ptr, unsigned int) noexcept {
+inline void operator delete[](void* ptr) {
     if (ptr != nullptr) {
         gHeapHandler.Free(ptr);
     }
 }
 
+inline void operator delete(void* ptr, unsigned int) {
+    if (ptr != nullptr) {
+        gHeapHandler.Free(ptr);
+    }
+}
+
+inline void operator delete[](void* ptr, unsigned int) {
+    if (ptr != nullptr) {
+        gHeapHandler.Free(ptr);
+    }
+}
