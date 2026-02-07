@@ -62,6 +62,8 @@ SECTIONS
 
     _heap_start = .;
 
+    __dso_handle = 0;
+
     /DISCARD/ : { 
         *(.comment) 
         *(.ARM.attributes)

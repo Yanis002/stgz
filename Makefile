@@ -52,8 +52,10 @@ HOOKS_OBJ := $(foreach f,$(HOOKS_SRC:hooks/%=%),$(HOOKS_BUILD_DIR)/$(f:.c=.o))
 
 # compiler settings
 CC := arm-none-eabi-gcc -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -nostdlib -nodefaultlibs -nostartfiles
+WARNINGS := -Wall -Wno-multichar -Wno-unknown-pragmas
+INCLUDES := -I include -I $(DECOMP_DIR)/include -I $(DECOMP_DIR)/libs/c/include
 CPP_DEFINES := -DGZ_OVL_ID=114
-CFLAGS := -Wall -Os -fno-short-enums -fomit-frame-pointer -ffast-math -fno-builtin -fshort-wchar -I include -I $(DECOMP_DIR)/include -I $(DECOMP_DIR)/libs/c/include $(CPP_DEFINES)
+CFLAGS := -Os -fno-short-enums -fomit-frame-pointer -ffast-math -fno-builtin -fshort-wchar $(WARNINGS) $(INCLUDES) $(CPP_DEFINES)
 CPP_FLAGS := $(CFLAGS) -fno-rtti -fno-exceptions -std=c++2c
 
 ELF := $(BUILD_DIR)/ovgz.elf
