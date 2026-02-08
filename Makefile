@@ -201,7 +201,7 @@ extract:
 
 hooks: overlay $(HOOKS_BIN) $(HOOKS_GAME_BIN)
 
-init: venv libs
+init: venv
 	$(call print_no_args,Verifying baserom checksum...)
 ifeq ($(COMPARE),1)
 	$(V)sha1sum -c $(EXTRACT_DIR)/baserom_st_$(REGION).sha1
