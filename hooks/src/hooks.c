@@ -5,16 +5,11 @@
  * Make sure to make it as small as possible!
  */
 
-//! TODO: remove when decomp names this
-#define RTC_Init func_0202ff34
-
+extern void func_ov018_020c48f8(void* ptr);
 extern void FS_LoadOverlay(int param1, int overlayID);
-extern void RTC_Init();
-extern void func_02014d98(void* param1);
 extern void GZ_Init();
 extern void GZ_Update();
-
-extern unsigned int data_02049bd4;
+extern void func_02014d98(void* param1);
 
 #ifndef __INTELLISENSE__
 #ifndef GZ_OVL_ID
@@ -24,23 +19,27 @@ extern unsigned int data_02049bd4;
 #define GZ_OVL_ID 0
 #endif
 
-// init hook: replace the `RTC_Init` call from `func_ov018_020c4e8c` so we can load and init the gz overlay
-void GZ_InitHook() {
-    // load our overlay
-    FS_LoadOverlay(0, GZ_OVL_ID);
+// init hook: replace the `func_ov018_020c48f8` call from `GameModeStartUp::vfunc_0C` so we can load and init the gz overlay
+void GZ_InitHook(void* ptr) {
+    func_ov018_020c48f8(ptr);
 
-    // call the init function
-    GZ_Init();
+    // IMPORTANT: the gz overlay must load AFTER overlay 0 is loaded
+    if (*(unsigned int*)0x02043E50 == 0) {
+        // load our overlay
+        FS_LoadOverlay(0, GZ_OVL_ID);
 
-    // end with original function call
-    RTC_Init();
+        // call the init function
+        GZ_Init();
+    }
 }
 
 // update hook: replace the `func_02014d98` call from `UnkStruct_02049a2c::Run` so we can run the gz update function
-void GZ_UpdateHook() {
-    // call the update function
-    GZ_Update();
+void GZ_UpdateHook(void* ptr) {
+    if (*(unsigned int*)0x02043E50 == 0) {
+        // call the update function
+        GZ_Update();
+    }
 
     // end with original function call
-    func_02014d98(&data_02049bd4);
+    func_02014d98(ptr);
 }

@@ -31,17 +31,17 @@ class Symbol:
     addr: int
 
     @staticmethod
-    def new(name: str):
-        lines = subprocess.check_output(["arm-none-eabi-nm", args.elf], text=True).split("\n")
+    def new(name: str, elf_path: str = args.elf):
+        lines = subprocess.check_output(["arm-none-eabi-nm", elf_path], text=True).split("\n")
 
         found = False
+        line = None
         for line in lines:
             if name in line:
                 found = True
                 break
 
-        assert found, "symbol not found!"
-        print(line)
+        assert line is not None and found, "symbol not found!"
         return Symbol(name, int(line.split(" ")[0], base=16))
 
     def to_asm(self):
@@ -69,21 +69,21 @@ class SetupASM:
             ".relativeinclude on",
             ".erroronwarning on\n",
 
+            Symbol.new("func_ov018_020c48f8").to_asm(),
             Symbol.new("FS_LoadOverlay").to_asm(),
             Symbol.new("GZ_Init").to_asm(),
-            Symbol.new("func_0202ff34").to_asm(),
-
             Symbol.new("GZ_Update").to_asm(),
-            Symbol.new("data_02049bd4").to_asm(),
             Symbol.new("func_02014d98").to_asm() + "\n",
 
-            ".open ARM9_BIN, ARM9_MOD_BIN, 0x02000000",
-            INDENT + "; load the hooks into the main module",
-            INDENT + ".org ARM9_NEW_CODE_STORE_ADDR",
+            ".open ITCM_BIN, ITCM_MOD_BIN, 0x01FF8000",
+            INDENT + "; load the hooks into ITCM",
+            INDENT + ".org HOOKS_ADDR",
             INDENT * 2 + ".area HOOKS_SIZE, 0xFF",
             INDENT * 3 + f"\n{INDENT * 3}".join(f'.importobj "{obj}"' for obj in self.hooks_obj_list),
-            INDENT * 2 + ".endarea\n",
+            INDENT * 2 + ".endarea",
+            ".close\n",
 
+            ".open ARM9_BIN, ARM9_MOD_BIN, 0x02000000",
             INDENT + "; apply update hook",
             INDENT + ".org HOOK_UPDATE",
             INDENT * 2 + ".arm",
@@ -167,17 +167,34 @@ def get_extra_overlay(file_id: int):
 
 
 def update_yaml(extracted_dir: Path):
-    # update arm9.bin filename
+    # update arm9.bin and itcm.bin filenames
     config_yaml = extracted_dir / "config.yaml"
 
     with open(config_yaml, "r", encoding="utf-8") as file:
         yaml_file = yaml.safe_load(file)
 
+    do_write = False
     if "_mod" not in yaml_file["arm9_bin"]:
         yaml_file["arm9_bin"] = f"{yaml_file['arm9_bin'][:-4]}_mod.bin"
+        do_write = True
 
+    if "_mod" not in  yaml_file["itcm"]["bin"]:
+        yaml_file["itcm"]["bin"] = f"{yaml_file['itcm']['bin'][:-4]}_mod.bin"
+        do_write = True
+
+    if do_write:
         with open(config_yaml, "w", encoding="utf-8") as file:
             yaml.safe_dump(yaml_file, file, sort_keys=False)
+
+    # update itcm code size
+    itcm_yaml = extracted_dir / "arm9" / "itcm.yaml"
+    with open(itcm_yaml, "r", encoding="utf-8") as file:
+        yaml_file = yaml.safe_load(file)
+
+    yaml_file["code_size"] = 32768
+
+    with open(itcm_yaml, "w", encoding="utf-8") as file:
+        yaml.safe_dump(yaml_file, file, sort_keys=False)
 
     # add or update overlays
     overlays_yaml = extracted_dir / "arm9_overlays" / "overlays.yaml"

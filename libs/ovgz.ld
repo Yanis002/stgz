@@ -6,7 +6,7 @@ SECTIONS
     . = OVLGZ_ADDR;
 
     _overlay_start = .;
-    _overlay_end = _overlay_start + OVLGZ_SIZE - HOOKS_SIZE;
+    _overlay_end = _overlay_start + OVLGZ_SIZE;
 
     __text_start = .;
     .text : {

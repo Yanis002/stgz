@@ -8,7 +8,7 @@ SHELL = /usr/bin/env bash
 .SHELLFLAGS = -o pipefail -c
 
 # path to decomp, defaults to the submodule's path
-DECOMP_DIR ?= resources/decomp
+STGZ_DECOMP_DIR ?= resources/decomp
 
 # game region, only eur is supported atm
 REGION := eur
@@ -54,20 +54,20 @@ HOOKS_OBJ := $(foreach f,$(HOOKS_SRC:hooks/%=%),$(HOOKS_BUILD_DIR)/$(f:.c=.o))
 ifeq ($(REGION),eur)
 OVL018_ADDR := 0x020C4840
 OVLGZ_ADDR := 0x0218A380
-HOOK_INIT := 0x020C4E90
+HOOK_INIT := 0x020C4DD0
 HOOK_UPDATE := 0x02013464
 else
 $(error "Region not supported: $(REGION)")
 endif
 
 OVLGZ_SIZE := 0x20000
-HOOKS_SIZE := 0x200
-HOOKS_ADDR = $(shell $(PYTHON) -c "print(f'0x{$(OVLGZ_ADDR) + $(OVLGZ_SIZE) - $(HOOKS_SIZE):08X}')")
+HOOKS_SIZE := 0x1E0
+HOOKS_ADDR := 0x01FFFE20
 
 # compiler settings
 CC := arm-none-eabi-gcc -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -nostdlib -nodefaultlibs -nostartfiles
 WARNINGS := -Wall -Wno-multichar -Wno-unknown-pragmas
-INCLUDES := -I include -I $(DECOMP_DIR)/include -I $(DECOMP_DIR)/libs/c/include
+INCLUDES := -I include -I $(STGZ_DECOMP_DIR)/include -I $(STGZ_DECOMP_DIR)/libs/c/include
 CPP_DEFINES := -DGZ_OVL_ID=114
 CFLAGS := -Os -fno-short-enums -fomit-frame-pointer -ffast-math -fno-builtin -fshort-wchar $(WARNINGS) $(INCLUDES) $(CPP_DEFINES)
 CPP_FLAGS := $(CFLAGS) -fno-rtti -fno-exceptions -std=c++2c
@@ -76,7 +76,7 @@ ELF := $(BUILD_DIR)/ovgz.elf
 BIN := $(ELF:.elf=.bin)
 MAP := $(ELF:.elf=.map)
 LD := $(CC)
-LDFLAGS := -T libs/ovgz.ld -Llibs -lst-$(REGION) -Wl,-Map,$(MAP) -specs=nosys.specs -Wl,--gc-sections -Wl,--defsym=OVLGZ_ADDR=$(OVLGZ_ADDR) -Wl,--defsym=OVLGZ_SIZE=$(OVLGZ_SIZE) -Wl,--defsym=HOOKS_SIZE=$(HOOKS_SIZE)
+LDFLAGS := -T libs/ovgz.ld -Llibs -lst-$(REGION) -Wl,-Map,$(MAP) -specs=nosys.specs -Wl,--gc-sections -Wl,--defsym=OVLGZ_ADDR=$(OVLGZ_ADDR) -Wl,--defsym=OVLGZ_SIZE=$(OVLGZ_SIZE)
 OBJCOPY := arm-none-eabi-objcopy
 
 # create output directories
@@ -95,9 +95,11 @@ ARMIPS_ARGS ?= \
 				-strequ OVL018_MOD_BIN "$(EXTRACTED_REL)/arm9_overlays/ov018_mod.bin" \
 				-strequ ARM9_BIN "$(EXTRACTED_REL)/arm9/arm9.bin" \
 				-strequ ARM9_MOD_BIN "$(EXTRACTED_REL)/arm9/arm9_mod.bin" \
+				-strequ ITCM_BIN "$(EXTRACTED_REL)/arm9/itcm.bin" \
+				-strequ ITCM_MOD_BIN "$(EXTRACTED_REL)/arm9/itcm_mod.bin" \
 				-equ OVL018_ADDR $(OVL018_ADDR) \
 				-equ HOOKS_SIZE $(HOOKS_SIZE) \
-				-equ ARM9_NEW_CODE_STORE_ADDR $(HOOKS_ADDR) \
+				-equ HOOKS_ADDR $(HOOKS_ADDR) \
 				-equ HOOK_UPDATE $(HOOK_UPDATE) \
 				-equ HOOK_INIT $(HOOK_INIT)
 
@@ -121,7 +123,7 @@ venv:
 	$(PYTHON) -m pip install -U -r tools/requirements.txt
 
 libs:
-	$(PYTHON) tools/gen_libs.py -d $(DECOMP_DIR) -b build
+	$(PYTHON) tools/gen_libs.py -d $(STGZ_DECOMP_DIR) -b build
 
 init: venv libs
 	sha1sum -c $(EXTRACT_DIR)/baserom_st_$(REGION).sha1
