@@ -3,19 +3,24 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import argparse
-import json
-import re
 import os
+import re
+import subprocess
 
+from dataclasses import dataclass
 from pathlib import Path
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--decomp", type=Path, required=True)
-    parser.add_argument("-b", "--build_dir", type=Path, required=True)
-    args = parser.parse_args()
+parser = argparse.ArgumentParser()
+parser.add_argument("-m", "--mode", required=True)
+parser.add_argument("-d", "--decomp", type=Path)
+parser.add_argument("-b", "--build_dir", type=Path)
+parser.add_argument("-e", "--elf")
+args = parser.parse_args()
 
+
+def gen_libst(libs_dir: Path):
+    assert args.decomp is not None, "decomp path should be set"
     decomp_path: Path = args.decomp.resolve()
     config_path = decomp_path / "config"
 
@@ -61,9 +66,7 @@ def main():
 
                 out_libs[version] += f"{sym_name} = 0x{addr:08X};\n"
 
-    libs_dir = Path("libs").resolve()
-    libs_dir.mkdir(exist_ok=True)
-
+    assert args.build_dir is not None, "argument missing: '--build_dir'"
     thumb_dir: Path = args.build_dir.resolve()
     thumb_dir.mkdir(exist_ok=True, parents=True)
 
@@ -84,6 +87,48 @@ def main():
         thumbs_file = thumb_dir / f"thumb-{version}.s"
         thumbs_file.write_text("\n".join(thumb_header) + out_thumbs[version])
         print(f"thumb-{version}.s is OK!")
+
+
+@dataclass
+class Symbol:
+    name: str
+    addr: int
+
+    def to_txt(self):
+        return f"{self.name} = 0x{self.addr:08X};"
+
+
+class Symbols:
+    def __init__(self):
+        self.entries: list[Symbol] = []
+
+        assert args.elf is not None, "argument missing: '--elf'"
+        lines = subprocess.check_output(["arm-none-eabi-nm", args.elf], text=True).splitlines()
+
+        for line in lines:
+            sym_addr, sym_type, sym_name = line.split(" ")
+
+            if sym_type != "A":
+                self.entries.append(Symbol(sym_name, int(f"0x{sym_addr}", base=16)))
+
+        assert len(self.entries) > 0, "symbols not found"
+
+    def to_txt(self):
+        return "\n".join(sym.to_txt() for sym in self.entries) + "\n"
+
+
+def main():
+    libs_dir = Path("libs").resolve()
+    libs_dir.mkdir(exist_ok=True)
+
+    if args.mode == "libst":
+        gen_libst(libs_dir)
+    elif args.mode == "libgz":
+        libgz_path = libs_dir / "libgz.a"
+        libgz_path.write_text(Symbols().to_txt())
+        print("libgz.a is OK!")
+    else:
+        raise ValueError(f"ERROR: unknown mode '{args.mode}'")
 
 
 if __name__ == "__main__":

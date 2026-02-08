@@ -23,6 +23,8 @@ parser.add_argument("-a", "--address", required=True)
 parser.add_argument("-d", "--hooks_build_dir", type=Path, required=True)
 parser.add_argument("--elf", required=True)
 parser.add_argument("--map", type=Path, required=True)
+parser.add_argument("--hooks_elf", required=True)
+parser.add_argument("--hooks_bin", type=Path, required=True)
 args = parser.parse_args()
 
 @dataclass
@@ -73,13 +75,15 @@ class SetupASM:
             Symbol.new("FS_LoadOverlay").to_asm(),
             Symbol.new("GZ_Init").to_asm(),
             Symbol.new("GZ_Update").to_asm(),
+            Symbol.new("GZ_UpdateHook", elf_path=args.hooks_elf).to_asm(),
+            Symbol.new("GZ_InitHook", elf_path=args.hooks_elf).to_asm(),
             Symbol.new("func_02014d98").to_asm() + "\n",
 
             ".open ITCM_BIN, ITCM_MOD_BIN, 0x01FF8000",
             INDENT + "; load the hooks into ITCM",
             INDENT + ".org HOOKS_ADDR",
             INDENT * 2 + ".area HOOKS_SIZE, 0xFF",
-            INDENT * 3 + f"\n{INDENT * 3}".join(f'.importobj "{obj}"' for obj in self.hooks_obj_list),
+            INDENT * 3 + f'.incbin "../../../{args.hooks_bin}"',
             INDENT * 2 + ".endarea",
             ".close\n",
 

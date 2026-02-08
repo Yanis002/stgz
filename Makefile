@@ -79,6 +79,12 @@ LD := $(CC)
 LDFLAGS := -T libs/ovgz.ld -Llibs -lst-$(REGION) -Wl,-Map,$(MAP) -specs=nosys.specs -Wl,--gc-sections -Wl,--defsym=OVLGZ_ADDR=$(OVLGZ_ADDR) -Wl,--defsym=OVLGZ_SIZE=$(OVLGZ_SIZE)
 OBJCOPY := arm-none-eabi-objcopy
 
+HOOKS_ELF := $(HOOKS_BUILD_DIR)/hooks.elf
+HOOKS_BIN := $(HOOKS_ELF:.elf=.bin)
+HOOKS_MAP := $(HOOKS_ELF:.elf=.map)
+HOOKS_LD := $(CC)
+HOOKS_LDFLAGS := -T hooks/hooks.ld -Llibs -lst-$(REGION) -lgz -Wl,-Map,$(HOOKS_MAP) -specs=nosys.specs -Wl,--gc-sections -Wl,--defsym=HOOKS_ADDR=$(HOOKS_ADDR)
+
 # create output directories
 $(shell mkdir -p $(BUILD_DIR)/src)
 $(shell mkdir -p $(HOOKS_BUILD_DIR)/src)
@@ -108,22 +114,21 @@ ARMIPS_ARGS ?= \
 all: build
 	$(DSROM) build --config $(EXTRACTED_DIR)/config.yaml --rom $(OUT_ROM)
 
+build: hooks
+	$(ROM_PATCHER) -e $(EXTRACTED_DIR) -o $(OBJ) -m $(OVLGZ_SIZE) -j $(HOOKS_OBJ) -n $(HOOKS_SIZE) -a $(OVLGZ_ADDR) -d $(HOOKS_BUILD_DIR) --elf $(ELF) --map $(MAP) --hooks_bin $(HOOKS_BIN) --hooks_elf $(HOOKS_ELF)
+	$(ARMIPS) $(HOOKS_BUILD_DIR)/setup.asm $(ARMIPS_ARGS)
+
+clean:
+	$(RM) -r $(BUILD_DIR) $(HOOKS_BUILD_DIR)
+	$(RM) $(OUT_ROM)
+
+distclean: clean
+	$(RM) -r $(EXTRACTED_DIR)
+
 extract:
 	$(DSROM) extract --rom $(EXTRACT_DIR)/baserom_st_$(REGION).nds --path $(EXTRACTED_DIR)
 
-build: $(HOOKS_OBJ) $(BIN)
-	$(ROM_PATCHER) -e $(EXTRACTED_DIR) -o $(OBJ) -m $(OVLGZ_SIZE) -j $(HOOKS_OBJ) -n $(HOOKS_SIZE) -a $(OVLGZ_ADDR) -d $(HOOKS_BUILD_DIR) --elf $(ELF) --map $(MAP)
-	$(ARMIPS) $(HOOKS_BUILD_DIR)/setup.asm $(ARMIPS_ARGS)
-
-venv:
-# Create the virtual environment if it doesn't exist.
-# Delete the virtual environment directory if creation fails.
-	test -d $(VENV) || python3 -m venv $(VENV) || { rm -rf $(VENV); false; }
-	$(PYTHON) -m pip install -U pip
-	$(PYTHON) -m pip install -U -r tools/requirements.txt
-
-libs:
-	$(PYTHON) tools/gen_libs.py -d $(STGZ_DECOMP_DIR) -b build
+hooks: overlay $(HOOKS_BIN)
 
 init: venv libs
 	sha1sum -c $(EXTRACT_DIR)/baserom_st_$(REGION).sha1
@@ -136,12 +141,22 @@ ifeq ("$(wildcard $(ARMIPS_DIR)/out)", "")
 endif
 endif
 
+libs:
+	$(PYTHON) tools/gen_libs.py -m libst -d $(STGZ_DECOMP_DIR) -b build
+
+overlay: $(BIN)
+	$(PYTHON) tools/gen_libs.py -m libgz -e $(ELF)
+
 setup: extract
 
-clean:
-	$(RM) $(ELF) $(BIN) $(MAP) $(OBJ) $(HOOKS_OBJ) $(OUT_ROM)
+venv:
+# Create the virtual environment if it doesn't exist.
+# Delete the virtual environment directory if creation fails.
+	test -d $(VENV) || python3 -m venv $(VENV) || { rm -rf $(VENV); false; }
+	$(PYTHON) -m pip install -U pip
+	$(PYTHON) -m pip install -U -r tools/requirements.txt
 
-.PHONY: build clean extract libs init setup venv
+.PHONY: all build clean distclean extract hooks init libs overlay setup venv
 
 ### misc project recipes ###
 
@@ -171,3 +186,9 @@ $(ELF): $(OBJ)
 $(BIN): $(ELF)
 	$(OBJCOPY) -S -O binary $< $@
 	$(CP) $@ $(EXTRACTED_DIR)/arm9_overlays/ovgz.bin
+
+$(HOOKS_ELF): $(HOOKS_OBJ)
+	$(LD) -o $@ $^ $(HOOKS_LDFLAGS)
+
+$(HOOKS_BIN): $(HOOKS_ELF)
+	$(OBJCOPY) -S -O binary $< $@
