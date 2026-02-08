@@ -6,4 +6,5 @@
 class CustomGame : public UnkStruct_02049a2c {
 public:
     void Run(unk32 param1);
+    void ExecutePause();
 };

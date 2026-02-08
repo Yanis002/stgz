@@ -31,10 +31,56 @@ struct SomeSaveFileStruct {
     ~SomeSaveFileStruct();
 };
 
+void CustomGame::ExecutePause() {
+    data_02049b18.func_02013840(data_0204a110.mUnk_004, data_0204a110.func_02019300(data_0204a110.mUnk_DF8));
+
+    if (this->mFrameCounter + data_0204a110.mUnk_004 - (s32)SHARED_WORK_C3C > 1) {
+        func_0201328c();
+    }
+
+    while (this->mFrameCounter + data_0204a110.mUnk_004 - (s32)SHARED_WORK_C3C > 1) {
+        func_020132c8();
+    }
+
+    {
+        int enabled = func_020280ec();
+        this->mUnk_1C.func_02013e18((void*)func_020132dc, 0);
+        func_02028100(enabled);
+    }
+
+    func_020132c8();
+
+    if (gGZ.mState.doRNGUpdatesDuringPause && !gGZ.mState.isRNGPaused) {
+        gRandom.UpdateRandomValue();
+    }
+}
+
 void CustomGame::Run(unk32 param1) {
     gGZ.prevGameModeOvl = OverlayIndex_StartUp;
 
     do {
+        // stgz: pause and frame advance block
+        {
+            u32 curFrameCount = SHARED_WORK_C3C;
+
+            // if we have game frames to draw and it's not pausing enable the pause then decrease the queue value
+            if (gGZ.mState.requestedFrames > 0) {
+                if (!gGZ.mState.isPaused) {
+                    gGZ.mState.isPaused = true;
+                }
+
+                gGZ.mState.requestedFrames--;
+            } else {
+                // if it's paused and there is no frames left to execute then do the pause
+                if (gGZ.mState.isPaused) {
+                    SHARED_WORK_C3C = curFrameCount; // freeze frame count
+                    this->ExecutePause(); // execute the necessary code to avoid crashes
+                    gGZ.Update(); // keep updating gz
+                    continue;
+                }
+            }
+        }
+
         // initialization of the next game mode
         if (this->createCallback != NULL) {
             data_0204999c.func_02013014();
@@ -77,7 +123,10 @@ void CustomGame::Run(unk32 param1) {
             data_02049bd4.func_02014d98();
             data_0204a110.func_02019300(data_0204a110.mUnk_DF8);
 
-            gRandom.UpdateRandomValue();
+            // stgz: stop updating the seed each frame
+            if (!gGZ.mState.isRNGPaused) {
+                gRandom.UpdateRandomValue();
+            }
 
             unk32 uVar4 = data_0204a110.func_02019300(data_0204a110.mUnk_DF8);
             data_02049b74.func_02013a44(data_0204a110.mUnk_004);
@@ -135,6 +184,7 @@ void CustomGame::Run(unk32 param1) {
             func_0201328c();
         }
 
+        // testing notes: this seems to be used to slow down the execution of the game, commenting this out makes adventure mode run at full speed
         while (this->mFrameCounter + data_0204a110.mUnk_004 - (s32)SHARED_WORK_C3C > 1) {
             func_020132c8();
         }

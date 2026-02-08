@@ -1,6 +1,7 @@
 #include "gz.hpp"
 
 #include <nitro/button.h>
+#include <System/Random.hpp>
 #include <regs.h>
 
 // extern u32 data_0204a110;
@@ -15,13 +16,21 @@ void GZ::Init() {
 }
 
 void GZ::Update() {
-    // if (CHECK_BUTTON_COMBO(this->mpButtons->press, BTN_B)) {
-    //     if (this->mState.isPaused) {
-    //         this->mState.isPaused = false;
-    //     } else {
-    //         this->mState.isPaused = true;
-    //     }
-    // }
+    if (CHECK_BUTTON_COMBO(this->mpButtons->press, BTN_A)) {
+        if (this->mState.isPaused) {
+            this->mState.isPaused = false;
+        } else {
+            this->mState.isPaused = true;
+        }
+    }
+
+    if (CHECK_BUTTON_COMBO(this->mpButtons->cur, BTN_B)) {
+        this->mState.requestedFrames++;
+    }
+
+    if (CHECK_BUTTON_COMBO(this->mpButtons->press, BTN_R)) {
+        this->mState.requestedFrames++;
+    }
 
     // if (CHECK_BUTTON_COMBO(this->mpButtons->cur, BTN_B)) {
     //     *(u32*)0x0218A900 = func_01ff9b1c(&data_0204a110, this->mTest.mUnk_008) != 0;
