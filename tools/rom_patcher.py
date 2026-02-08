@@ -25,6 +25,7 @@ parser.add_argument("--elf", required=True)
 parser.add_argument("--map", type=Path, required=True)
 parser.add_argument("--hooks_elf", required=True)
 parser.add_argument("--hooks_bin", type=Path, required=True)
+parser.add_argument("--hooks_game_bin", type=Path, required=True)
 args = parser.parse_args()
 
 @dataclass
@@ -65,37 +66,29 @@ class SetupASM:
         # not sure yet if it's a good idea to generate this entire file but whatever
 
         lines = [
-            "; This file was created by `tools/rom_patcher.py`\n",
-
+            "; This file was created by `tools/rom_patcher.py`",
+            "\n",
             ".nds",
             ".relativeinclude on",
-            ".erroronwarning on\n",
-
-            Symbol.new("func_ov018_020c48f8").to_asm(),
-            Symbol.new("FS_LoadOverlay").to_asm(),
-            Symbol.new("GZ_Init").to_asm(),
-            Symbol.new("GZ_Update").to_asm(),
-            Symbol.new("GZ_UpdateHook", elf_path=args.hooks_elf).to_asm(),
+            ".erroronwarning on",
+            "\n",
             Symbol.new("GZ_InitHook", elf_path=args.hooks_elf).to_asm(),
-            Symbol.new("func_02014d98").to_asm() + "\n",
-
+            "\n",
             ".open ITCM_BIN, ITCM_MOD_BIN, 0x01FF8000",
             INDENT + "; load the hooks into ITCM",
             INDENT + ".org HOOKS_ADDR",
             INDENT * 2 + ".area HOOKS_SIZE, 0xFF",
             INDENT * 3 + f'.incbin "../../../{args.hooks_bin}"',
             INDENT * 2 + ".endarea",
-            ".close\n",
-
+            ".close",
+            "\n",
             ".open ARM9_BIN, ARM9_MOD_BIN, 0x02000000",
-            INDENT + "; apply update hook",
-            INDENT + ".org HOOK_UPDATE",
-            INDENT * 2 + ".arm",
-            INDENT * 2 + ".area 0x04",
-            INDENT * 3 + "bl GZ_UpdateHook",
+            INDENT + ".org HOOKS_GAME_ADDR",
+            INDENT * 2 + ".area 0x390, 0x00",
+            INDENT * 3 + f'.incbin "../../../{args.hooks_game_bin}"',
             INDENT * 2 + ".endarea",
-            ".close\n",
-
+            ".close",
+            "\n",
             ".open OVL018_BIN, OVL018_MOD_BIN, OVL018_ADDR",
             INDENT + "; apply init hook",
             INDENT + ".org HOOK_INIT",
@@ -103,7 +96,8 @@ class SetupASM:
             INDENT * 2 + ".area 0x04",
             INDENT * 3 + "bl GZ_InitHook",
             INDENT * 2 + ".endarea",
-            ".close\n",
+            ".close",
+            "\n",
         ]
 
         return "\n".join(lines)
@@ -178,7 +172,8 @@ def update_yaml(extracted_dir: Path):
         yaml_file = yaml.safe_load(file)
 
     do_write = False
-    if "_mod" not in yaml_file["arm9_bin"]:
+
+    if "_mod" not in  yaml_file["arm9_bin"]:
         yaml_file["arm9_bin"] = f"{yaml_file['arm9_bin'][:-4]}_mod.bin"
         do_write = True
 

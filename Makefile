@@ -49,6 +49,8 @@ OBJ := $(foreach f,$(ASM_FILES),$(BUILD_DIR)/$(f:.s=.o)) $(foreach f,$(C_FILES),
 HOOKS_BUILD_DIR := hooks/build/$(REGION)
 HOOKS_SRC := $(wildcard hooks/src/*.c)
 HOOKS_OBJ := $(foreach f,$(HOOKS_SRC:hooks/%=%),$(HOOKS_BUILD_DIR)/$(f:.c=.o))
+HOOKS_GAME_SRC := $(wildcard hooks/src/*.cpp)
+HOOKS_GAME_OBJ := $(foreach f,$(HOOKS_GAME_SRC:hooks/%=%),$(HOOKS_BUILD_DIR)/$(f:.cpp=.o))
 
 # region addresses
 ifeq ($(REGION),eur)
@@ -56,13 +58,18 @@ OVL018_ADDR := 0x020C4840
 OVLGZ_ADDR := 0x0218A380
 HOOK_INIT := 0x020C4DD0
 HOOK_UPDATE := 0x02013464
+MAIN_ADDR := 0x02000BC8
+OVERLAY_0_SLOT_ADDR := 0x02043E50 # in reality this is the address of gOverlayManager
+HOOKS_ADDR := 0x01FFFE20
+HOOKS_GAME_ADDR := 0x02013394
 else
 $(error "Region not supported: $(REGION)")
 endif
 
 OVLGZ_SIZE := 0x20000
 HOOKS_SIZE := 0x1E0
-HOOKS_ADDR := 0x01FFFE20
+RESERVED_SIZE := 0x10
+RESERVED_ADDR := $(shell $(PYTHON) -c "print(f'0x{$(OVLGZ_ADDR) + $(OVLGZ_SIZE) - $(RESERVED_SIZE):08X}')")
 
 # compiler settings
 CC := arm-none-eabi-gcc -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -nostdlib -nodefaultlibs -nostartfiles
@@ -76,14 +83,18 @@ ELF := $(BUILD_DIR)/ovgz.elf
 BIN := $(ELF:.elf=.bin)
 MAP := $(ELF:.elf=.map)
 LD := $(CC)
-LDFLAGS := -T libs/ovgz.ld -Llibs -lst-$(REGION) -Wl,-Map,$(MAP) -specs=nosys.specs -Wl,--gc-sections -Wl,--defsym=OVLGZ_ADDR=$(OVLGZ_ADDR) -Wl,--defsym=OVLGZ_SIZE=$(OVLGZ_SIZE)
+LDFLAGS := -T libs/ovgz.ld -Llibs -lst-$(REGION) -Wl,-Map,$(MAP) -specs=nosys.specs -Wl,--gc-sections -Wl,--defsym=OVLGZ_ADDR=$(OVLGZ_ADDR) -Wl,--defsym=OVLGZ_SIZE=$(OVLGZ_SIZE) -Wl,--defsym=RESERVED_SIZE=$(RESERVED_SIZE)
 OBJCOPY := arm-none-eabi-objcopy
 
 HOOKS_ELF := $(HOOKS_BUILD_DIR)/hooks.elf
 HOOKS_BIN := $(HOOKS_ELF:.elf=.bin)
 HOOKS_MAP := $(HOOKS_ELF:.elf=.map)
 HOOKS_LD := $(CC)
-HOOKS_LDFLAGS := -T hooks/hooks.ld -Llibs -lst-$(REGION) -lgz -Wl,-Map,$(HOOKS_MAP) -specs=nosys.specs -Wl,--gc-sections -Wl,--defsym=HOOKS_ADDR=$(HOOKS_ADDR)
+HOOKS_LDFLAGS := -T hooks/hooks.ld -Llibs -lst-$(REGION) -lgz -specs=nosys.specs -Wl,--gc-sections
+
+HOOKS_GAME_ELF := $(HOOKS_BUILD_DIR)/game.elf
+HOOKS_GAME_BIN := $(HOOKS_GAME_ELF:.elf=.bin)
+HOOKS_GAME_MAP := $(HOOKS_GAME_ELF:.elf=.map)
 
 # create output directories
 $(shell mkdir -p $(BUILD_DIR)/src)
@@ -106,6 +117,7 @@ ARMIPS_ARGS ?= \
 				-equ OVL018_ADDR $(OVL018_ADDR) \
 				-equ HOOKS_SIZE $(HOOKS_SIZE) \
 				-equ HOOKS_ADDR $(HOOKS_ADDR) \
+				-equ HOOKS_GAME_ADDR $(HOOKS_GAME_ADDR) \
 				-equ HOOK_UPDATE $(HOOK_UPDATE) \
 				-equ HOOK_INIT $(HOOK_INIT)
 
@@ -115,7 +127,7 @@ all: build
 	$(DSROM) build --config $(EXTRACTED_DIR)/config.yaml --rom $(OUT_ROM)
 
 build: hooks
-	$(ROM_PATCHER) -e $(EXTRACTED_DIR) -o $(OBJ) -m $(OVLGZ_SIZE) -j $(HOOKS_OBJ) -n $(HOOKS_SIZE) -a $(OVLGZ_ADDR) -d $(HOOKS_BUILD_DIR) --elf $(ELF) --map $(MAP) --hooks_bin $(HOOKS_BIN) --hooks_elf $(HOOKS_ELF)
+	$(ROM_PATCHER) -e $(EXTRACTED_DIR) -o $(OBJ) -m $(OVLGZ_SIZE) -j $(HOOKS_OBJ) -n $(HOOKS_SIZE) -a $(OVLGZ_ADDR) -d $(HOOKS_BUILD_DIR) --elf $(ELF) --map $(MAP) --hooks_bin $(HOOKS_BIN) --hooks_elf $(HOOKS_ELF) --hooks_game_bin $(HOOKS_GAME_BIN)
 	$(ARMIPS) $(HOOKS_BUILD_DIR)/setup.asm $(ARMIPS_ARGS)
 
 clean:
@@ -128,7 +140,7 @@ distclean: clean
 extract:
 	$(DSROM) extract --rom $(EXTRACT_DIR)/baserom_st_$(REGION).nds --path $(EXTRACTED_DIR)
 
-hooks: overlay $(HOOKS_BIN)
+hooks: overlay $(HOOKS_BIN) $(HOOKS_GAME_BIN)
 
 init: venv libs
 	sha1sum -c $(EXTRACT_DIR)/baserom_st_$(REGION).sha1
@@ -178,7 +190,10 @@ $(BUILD_DIR)/src/%.o: src/%.cpp
 
 # compile C source file to object file
 $(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.c
-	$(CC) $(CFLAGS) -c "$<" -o "$@"
+	$(CC) $(CFLAGS) -DOVERLAY_0_SLOT_ADDR=$(OVERLAY_0_SLOT_ADDR) -c "$<" -o "$@"
+
+$(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.cpp
+	$(CC) $(CPP_FLAGS) -c "$<" -o "$@"
 
 $(ELF): $(OBJ)
 	$(LD) -o $@ $^ $(LDFLAGS)
@@ -188,7 +203,13 @@ $(BIN): $(ELF)
 	$(CP) $@ $(EXTRACTED_DIR)/arm9_overlays/ovgz.bin
 
 $(HOOKS_ELF): $(HOOKS_OBJ)
-	$(LD) -o $@ $^ $(HOOKS_LDFLAGS)
+	$(LD) -o $@ $^ $(HOOKS_LDFLAGS) -Wl,-Map,$(HOOKS_MAP) -Wl,--defsym=HOOKS_ADDR=$(HOOKS_ADDR)
 
 $(HOOKS_BIN): $(HOOKS_ELF)
+	$(OBJCOPY) -S -O binary $< $@
+
+$(HOOKS_GAME_ELF): $(HOOKS_GAME_OBJ)
+	$(LD) -o $@ $^ $(HOOKS_LDFLAGS) -Wl,-Map,$(HOOKS_GAME_MAP) -Wl,--defsym=HOOKS_ADDR=$(HOOKS_GAME_ADDR)
+
+$(HOOKS_GAME_BIN): $(HOOKS_GAME_ELF)
 	$(OBJCOPY) -S -O binary $< $@

@@ -1,13 +1,14 @@
 #include "gz.hpp"
+#include "gz_game.hpp"
 
 extern "C" int __aeabi_atexit(void*, void (*)(void*), void*) { return 0; }
 
-// this function is called by the init hook, see `GZ_InitHook` in hook
+// this function is called by the init hook, see `GZ_InitHook`
 extern "C" void GZ_Init() {
     gGZ.Init();
 }
 
-// this function is called by the update hook, see `GZ_UpdateHook` in hook
-extern "C" void GZ_Update() {
-    gGZ.Update();
+// this function is called by the main hook, see `GameReplacement::Run`
+extern "C" void GZ_Main(int param1) {
+    ((CustomGame*)&data_02049a2c)->Run(param1);
 }
