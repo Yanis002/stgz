@@ -78,13 +78,18 @@ ASM_FILES := $(wildcard src/*.s)
 C_FILES := $(wildcard src/*.c)
 CPP_FILES := $(wildcard src/*.cpp)
 OBJ := $(foreach f,$(ASM_FILES),$(BUILD_DIR)/$(f:.s=.o)) $(foreach f,$(C_FILES),$(BUILD_DIR)/$(f:.c=.o)) $(foreach f,$(CPP_FILES),$(BUILD_DIR)/$(f:.cpp=.o)) $(BUILD_DIR)/thumb-$(REGION).o
+DEPS := $(foreach f,$(ASM_FILES),$(BUILD_DIR)/$(f:.s=.d)) $(foreach f,$(C_FILES),$(BUILD_DIR)/$(f:.c=.d)) $(foreach f,$(CPP_FILES),$(BUILD_DIR)/$(f:.cpp=.d))
 
 # hooks source/objects
 HOOKS_BUILD_DIR := hooks/build/$(REGION)
 HOOKS_SRC := $(wildcard hooks/src/*.c)
 HOOKS_OBJ := $(foreach f,$(HOOKS_SRC:hooks/%=%),$(HOOKS_BUILD_DIR)/$(f:.c=.o))
+HOOKS_DEPS := $(foreach f,$(HOOKS_SRC:hooks/%=%),$(HOOKS_BUILD_DIR)/$(f:.c=.d))
 HOOKS_GAME_SRC := $(wildcard hooks/src/*.cpp)
 HOOKS_GAME_OBJ := $(foreach f,$(HOOKS_GAME_SRC:hooks/%=%),$(HOOKS_BUILD_DIR)/$(f:.cpp=.o))
+HOOKS_GAME_DEPS := $(foreach f,$(HOOKS_GAME_SRC:hooks/%=%),$(HOOKS_BUILD_DIR)/$(f:.cpp=.d))
+
+ALL_DEPS := $(DEPS) $(HOOKS_DEPS) $(HOOKS_GAME_DEPS)
 
 # region addresses
 ifeq ($(REGION),eur)
@@ -110,7 +115,7 @@ CC := arm-none-eabi-gcc -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s 
 WARNINGS := -Wall -Wno-multichar -Wno-unknown-pragmas
 INCLUDES := -I include -I $(STGZ_DECOMP_DIR)/include -I $(STGZ_DECOMP_DIR)/libs/c/include
 CPP_DEFINES := -DGZ_OVL_ID=114 -DPACKAGE_VERSION='$(PACKAGE_VERSION)' -DPACKAGE_NAME='$(PACKAGE_NAME)' -DPACKAGE_COMMIT_AUTHOR='$(PACKAGE_COMMIT_AUTHOR)' -DPACKAGE_AUTHOR='$(PACKAGE_AUTHOR)'
-CFLAGS := -Os -fno-short-enums -fomit-frame-pointer -ffast-math -fno-builtin -fshort-wchar $(WARNINGS) $(INCLUDES) $(CPP_DEFINES)
+CFLAGS := -Os -fno-short-enums -fomit-frame-pointer -ffast-math -fno-builtin -fshort-wchar -MMD -MP $(WARNINGS) $(INCLUDES) $(CPP_DEFINES)
 CPP_FLAGS := $(CFLAGS) -fno-rtti -fno-exceptions -std=c++2c
 
 ELF := $(BUILD_DIR)/ovgz.elf
@@ -144,7 +149,7 @@ EXTRACTED_REL := ../../../$(EXTRACTED_DIR)
 ARMIPS_ARGS ?= \
 				-strequ OVL018_BIN "$(EXTRACTED_REL)/arm9_overlays/ov018.bin" \
 				-strequ OVL018_MOD_BIN "$(EXTRACTED_REL)/arm9_overlays/ov018_mod.bin" \
-				-strequ ARM9_BIN "$(EXTRACTED_REL)/arm9/arm9.bin" \
+				-strequ ARM9_BIN "$(EXTRACTED_REL)/arm9/arm9_patched.bin" \
 				-strequ ARM9_MOD_BIN "$(EXTRACTED_REL)/arm9/arm9_mod.bin" \
 				-strequ ITCM_BIN "$(EXTRACTED_REL)/arm9/itcm.bin" \
 				-strequ ITCM_MOD_BIN "$(EXTRACTED_REL)/arm9/itcm_mod.bin" \
@@ -230,24 +235,37 @@ venv:
 
 ### misc project recipes ###
 
-# process auto-generated thumb definitions (necessary to avoid crashes when calling thumb functions)
+# add dependencies
+-include $(ALL_DEPS)
+
+## process auto-generated thumb definitions (necessary to avoid crashes when calling thumb functions) ##
+
 $(BUILD_DIR)/thumb-$(REGION).o: build/thumb-$(REGION).s
 	$(V)$(CC) $(CFLAGS) -fverbose-asm -Os -x assembler-with-cpp -fomit-frame-pointer -c "$<" -o "$@"
 
-# compile S source file to assembly code
+## process source files ##
+
 $(BUILD_DIR)/src/%.o: src/%.s
 	$(call print_two_args,Assembling:,$<,$@)
 	$(V)$(CC) $(CFLAGS) -fverbose-asm -Os -x assembler-with-cpp -fomit-frame-pointer -c "$<" -o "$@"
 
-# compile C source file to object file
 $(BUILD_DIR)/src/%.o: src/%.c
 	$(call print_two_args,Compiling:,$<,$@)
 	$(V)$(CC) $(CFLAGS) -c "$<" -o "$@"
 
-# compile C++ source file to object file
 $(BUILD_DIR)/src/%.o: src/%.cpp
 	$(call print_two_args,Compiling:,$<,$@)
 	$(V)$(CC) $(CPP_FLAGS) -c "$<" -o "$@"
+
+$(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.c
+	$(call print_two_args,Compiling hooks:,$<,$@)
+	$(V)$(CC) $(CFLAGS) -DOVERLAY_0_SLOT_ADDR=$(OVERLAY_0_SLOT_ADDR) -c "$<" -o "$@"
+
+$(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.cpp
+	$(call print_two_args,Compiling hooks:,$<,$@)
+	$(V)$(CC) $(CPP_FLAGS) -c "$<" -o "$@"
+
+## process build artifacts ##
 
 $(ELF): $(OBJ)
 	$(call print_one_arg,Linking:,$@)
@@ -257,15 +275,6 @@ $(BIN): $(ELF)
 	$(call print_two_args,Wrapping binary to ELF:,$<,$@)
 	$(V)$(OBJCOPY) -S -O binary $< $@
 	$(V)$(CP) $@ $(EXTRACTED_DIR)/arm9_overlays/ovgz.bin
-
-# compile C source file to object file
-$(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.c
-	$(call print_two_args,Compiling hooks:,$<,$@)
-	$(V)$(CC) $(CFLAGS) -DOVERLAY_0_SLOT_ADDR=$(OVERLAY_0_SLOT_ADDR) -c "$<" -o "$@"
-
-$(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.cpp
-	$(call print_two_args,Compiling hooks:,$<,$@)
-	$(V)$(CC) $(CPP_FLAGS) -c "$<" -o "$@"
 
 $(HOOKS_ELF): $(HOOKS_OBJ)
 	$(call print_one_arg,Linking hooks:,$@)

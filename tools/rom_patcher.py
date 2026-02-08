@@ -130,7 +130,7 @@ def patch_arm9(extracted_dir: Path, base_addr: int, offset: int):
     arm9 = arm9.replace(struct.pack("<I", base_addr), struct.pack("<I", base_addr + offset))
 
     # write and close file
-    arm9_file.write_bytes(arm9)
+    arm9_file.with_name("arm9_patched.bin").write_bytes(arm9)
 
 
 def get_extra_overlay(file_id: int):
