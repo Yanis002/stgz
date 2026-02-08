@@ -1,5 +1,39 @@
 MAKEFLAGS += --no-builtin-rules
 
+# Set PACKAGE_NAME define for printing commit name
+ifeq ($(origin PACKAGE_NAME), undefined)
+  PACKAGE_NAME := "$(shell git log -1 --pretty=%s | tr -d '()`"\n' | tr -d "'" | sed 's/\"/\\\"/g')"
+  ifeq ($(PACKAGE_NAME),"")
+    PACKAGE_NAME := "Unknown name"
+  endif
+endif
+
+# Set PACKAGE_COMMIT_AUTHOR for printing commit author
+ifeq ($(origin PACKAGE_COMMIT_AUTHOR), undefined)
+  PACKAGE_COMMIT_AUTHOR := "$(shell git log -1 --pretty=format:'%an' | tr -d '\n' | sed 's/\"/\\\"/g')"
+  ifeq ($(PACKAGE_COMMIT_AUTHOR),"")
+    PACKAGE_COMMIT_AUTHOR := "Unknown author"
+  endif
+endif
+
+# Set PACKAGE_AUTHOR define for printing author's git name
+ifeq ($(origin PACKAGE_AUTHOR), undefined)
+  PACKAGE_AUTHOR := "$(shell git config --get user.name | tr -d '\n' | sed 's/\"/\\\"/g')"
+  ifeq ($(PACKAGE_AUTHOR),"")
+    PACKAGE_AUTHOR := "Unknown author"
+  endif
+endif
+
+# Set PACKAGE_VERSION define for printing commit hash
+ifeq ($(origin PACKAGE_VERSION), undefined)
+  PACKAGE_VERSION := "$(shell git log -1 --pretty=%h | tr -d '\n' | sed 's/\"/\\\"/g')"
+  ifeq ($(PACKAGE_VERSION),"")
+    PACKAGE_VERSION := "Unknown version"
+  endif
+endif
+
+-include tools/print_rules.mk
+
 # disable ds-rom output
 export RUST_LOG = ds_rom::rom::rom=warn
 
@@ -75,7 +109,7 @@ RESERVED_ADDR := $(shell $(PYTHON) -c "print(f'0x{$(OVLGZ_ADDR) + $(OVLGZ_SIZE) 
 CC := arm-none-eabi-gcc -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -nostdlib -nodefaultlibs -nostartfiles
 WARNINGS := -Wall -Wno-multichar -Wno-unknown-pragmas
 INCLUDES := -I include -I $(STGZ_DECOMP_DIR)/include -I $(STGZ_DECOMP_DIR)/libs/c/include
-CPP_DEFINES := -DGZ_OVL_ID=114
+CPP_DEFINES := -DGZ_OVL_ID=114 -DPACKAGE_VERSION='$(PACKAGE_VERSION)' -DPACKAGE_NAME='$(PACKAGE_NAME)' -DPACKAGE_COMMIT_AUTHOR='$(PACKAGE_COMMIT_AUTHOR)' -DPACKAGE_AUTHOR='$(PACKAGE_AUTHOR)'
 CFLAGS := -Os -fno-short-enums -fomit-frame-pointer -ffast-math -fno-builtin -fshort-wchar $(WARNINGS) $(INCLUDES) $(CPP_DEFINES)
 CPP_FLAGS := $(CFLAGS) -fno-rtti -fno-exceptions -std=c++2c
 
@@ -124,49 +158,73 @@ ARMIPS_ARGS ?= \
 ### project targets ###
 
 all: build
-	$(DSROM) build --config $(EXTRACTED_DIR)/config.yaml --rom $(OUT_ROM)
+	$(call print_no_args,Assembling the rom...)
+	$(V)$(DSROM) build --config $(EXTRACTED_DIR)/config.yaml --rom $(OUT_ROM)
+	$(call print_no_args,Success!)
+	@$(PRINT) "==== Build Options ====$(NO_COL)\n"
+	@$(PRINT) "${GREEN}Game Region: $(BLUE)$(REGION)$(NO_COL)\n"
+	@$(PRINT) "${GREEN}Rom Path: $(BLUE)$(OUT_ROM)$(NO_COL)\n"
+	@$(PRINT) "${GREEN}Code Version: $(BLUE)$(PACKAGE_VERSION)$(NO_COL)\n"
+	@$(PRINT) "${GREEN}Build Author: $(BLUE)$(PACKAGE_AUTHOR)$(NO_COL)\n"
+	@$(PRINT) "${GREEN}Commit Author: $(BLUE)$(PACKAGE_COMMIT_AUTHOR)$(NO_COL)\n"
+	@$(PRINT) "${BLINK}Build succeeded.\n$(NO_COL)"
 
 build: hooks
-	$(ROM_PATCHER) -e $(EXTRACTED_DIR) -o $(OBJ) -m $(OVLGZ_SIZE) -j $(HOOKS_OBJ) -n $(HOOKS_SIZE) -a $(OVLGZ_ADDR) -d $(HOOKS_BUILD_DIR) --elf $(ELF) --map $(MAP) --hooks_bin $(HOOKS_BIN) --hooks_elf $(HOOKS_ELF) --hooks_game_bin $(HOOKS_GAME_BIN)
-	$(ARMIPS) $(HOOKS_BUILD_DIR)/setup.asm $(ARMIPS_ARGS)
+	$(call print_no_args,Patching the game...)
+	$(V)$(ROM_PATCHER) -e $(EXTRACTED_DIR) -o $(OBJ) -m $(OVLGZ_SIZE) -j $(HOOKS_OBJ) -n $(HOOKS_SIZE) -a $(OVLGZ_ADDR) -d $(HOOKS_BUILD_DIR) --elf $(ELF) --map $(MAP) --hooks_bin $(HOOKS_BIN) --hooks_elf $(HOOKS_ELF) --hooks_game_bin $(HOOKS_GAME_BIN)
+	$(call print_no_args,Applying hooks and adding new code...)
+	$(V)$(ARMIPS) $(HOOKS_BUILD_DIR)/setup.asm $(ARMIPS_ARGS)
+	$(call print_no_args,Success!)
 
 clean:
-	$(RM) -r $(BUILD_DIR) $(HOOKS_BUILD_DIR)
-	$(RM) $(OUT_ROM)
+	$(V)$(RM) -r $(BUILD_DIR) $(HOOKS_BUILD_DIR)
+	$(V)$(RM) $(OUT_ROM)
+	$(call print_no_args,Success!)
 
 distclean: clean
-	$(RM) -r $(EXTRACTED_DIR)
+	$(V)$(RM) -r $(EXTRACTED_DIR)
+	$(call print_no_args,Success!)
 
 extract:
-	$(DSROM) extract --rom $(EXTRACT_DIR)/baserom_st_$(REGION).nds --path $(EXTRACTED_DIR)
+	$(call print_no_args,Extracting the rom...)
+	$(V)$(DSROM) extract --rom $(EXTRACT_DIR)/baserom_st_$(REGION).nds --path $(EXTRACTED_DIR)
+	$(call print_no_args,Success!)
 
 hooks: overlay $(HOOKS_BIN) $(HOOKS_GAME_BIN)
 
 init: venv libs
-	sha1sum -c $(EXTRACT_DIR)/baserom_st_$(REGION).sha1
-	$(DL_TOOL) dsrom v0.6.1
+	$(call print_no_args,Verifying baserom checksum...)
+	$(V)sha1sum -c $(EXTRACT_DIR)/baserom_st_$(REGION).sha1
+	$(V)$(DL_TOOL) dsrom v0.6.1
 ifeq ("$(wildcard $(ARMIPS_DIR))", "")
 	$(error armips not found!)
 else
 ifeq ("$(wildcard $(ARMIPS_DIR)/out)", "")
-	$(MKDIR) $(ARMIPS_DIR)/out && cd $(ARMIPS_DIR)/out && $(CMAKE) -DCMAKE_BUILD_TYPE=Release .. && $(CMAKE) --build .
+	$(call print_no_args,Building armips...)
+	$(V)$(MKDIR) $(ARMIPS_DIR)/out && cd $(ARMIPS_DIR)/out && $(CMAKE) -DCMAKE_BUILD_TYPE=Release .. && $(CMAKE) --build .
 endif
 endif
 
 libs:
-	$(PYTHON) tools/gen_libs.py -m libst -d $(STGZ_DECOMP_DIR) -b build
+	$(call print_no_args,Generating game symbol library...)
+	$(V)$(PYTHON) tools/gen_libs.py -m libst -d $(STGZ_DECOMP_DIR) -b build
+	$(call print_no_args,Success!)
 
 overlay: $(BIN)
-	$(PYTHON) tools/gen_libs.py -m libgz -e $(ELF)
+	$(call print_no_args,Generating stgz symbol library...)
+	$(V)$(PYTHON) tools/gen_libs.py -m libgz -e $(ELF)
+	$(call print_no_args,Success!)
 
 setup: extract
 
 venv:
 # Create the virtual environment if it doesn't exist.
 # Delete the virtual environment directory if creation fails.
-	test -d $(VENV) || python3 -m venv $(VENV) || { rm -rf $(VENV); false; }
-	$(PYTHON) -m pip install -U pip
-	$(PYTHON) -m pip install -U -r tools/requirements.txt
+	$(call print_no_args,Creating python virtual environment...)
+	$(V)test -d $(VENV) || python3 -m venv $(VENV) || { rm -rf $(VENV); false; }
+	$(V)$(PYTHON) -m pip install -U pip
+	$(V)$(PYTHON) -m pip install -U -r tools/requirements.txt
+	$(call print_no_args,Success!)
 
 .PHONY: all build clean distclean extract hooks init libs overlay setup venv
 
@@ -174,42 +232,53 @@ venv:
 
 # process auto-generated thumb definitions (necessary to avoid crashes when calling thumb functions)
 $(BUILD_DIR)/thumb-$(REGION).o: build/thumb-$(REGION).s
-	$(CC) $(CFLAGS) -fverbose-asm -Os -x assembler-with-cpp -fomit-frame-pointer -c "$<" -o "$@"
+	$(V)$(CC) $(CFLAGS) -fverbose-asm -Os -x assembler-with-cpp -fomit-frame-pointer -c "$<" -o "$@"
 
 # compile S source file to assembly code
 $(BUILD_DIR)/src/%.o: src/%.s
-	$(CC) $(CFLAGS) -fverbose-asm -Os -x assembler-with-cpp -fomit-frame-pointer -c "$<" -o "$@"
+	$(call print_two_args,Assembling:,$<,$@)
+	$(V)$(CC) $(CFLAGS) -fverbose-asm -Os -x assembler-with-cpp -fomit-frame-pointer -c "$<" -o "$@"
 
 # compile C source file to object file
 $(BUILD_DIR)/src/%.o: src/%.c
-	$(CC) $(CFLAGS) -c "$<" -o "$@"
+	$(call print_two_args,Compiling:,$<,$@)
+	$(V)$(CC) $(CFLAGS) -c "$<" -o "$@"
 
 # compile C++ source file to object file
 $(BUILD_DIR)/src/%.o: src/%.cpp
-	$(CC) $(CPP_FLAGS) -c "$<" -o "$@"
+	$(call print_two_args,Compiling:,$<,$@)
+	$(V)$(CC) $(CPP_FLAGS) -c "$<" -o "$@"
+
+$(ELF): $(OBJ)
+	$(call print_one_arg,Linking:,$@)
+	$(V)$(LD) -o $@ $^ $(LDFLAGS)
+
+$(BIN): $(ELF)
+	$(call print_two_args,Wrapping binary to ELF:,$<,$@)
+	$(V)$(OBJCOPY) -S -O binary $< $@
+	$(V)$(CP) $@ $(EXTRACTED_DIR)/arm9_overlays/ovgz.bin
 
 # compile C source file to object file
 $(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.c
-	$(CC) $(CFLAGS) -DOVERLAY_0_SLOT_ADDR=$(OVERLAY_0_SLOT_ADDR) -c "$<" -o "$@"
+	$(call print_two_args,Compiling hooks:,$<,$@)
+	$(V)$(CC) $(CFLAGS) -DOVERLAY_0_SLOT_ADDR=$(OVERLAY_0_SLOT_ADDR) -c "$<" -o "$@"
 
 $(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.cpp
-	$(CC) $(CPP_FLAGS) -c "$<" -o "$@"
-
-$(ELF): $(OBJ)
-	$(LD) -o $@ $^ $(LDFLAGS)
-
-$(BIN): $(ELF)
-	$(OBJCOPY) -S -O binary $< $@
-	$(CP) $@ $(EXTRACTED_DIR)/arm9_overlays/ovgz.bin
+	$(call print_two_args,Compiling hooks:,$<,$@)
+	$(V)$(CC) $(CPP_FLAGS) -c "$<" -o "$@"
 
 $(HOOKS_ELF): $(HOOKS_OBJ)
-	$(LD) -o $@ $^ $(HOOKS_LDFLAGS) -Wl,-Map,$(HOOKS_MAP) -Wl,--defsym=HOOKS_ADDR=$(HOOKS_ADDR)
+	$(call print_one_arg,Linking hooks:,$@)
+	$(V)$(LD) -o $@ $^ $(HOOKS_LDFLAGS) -Wl,-Map,$(HOOKS_MAP) -Wl,--defsym=HOOKS_ADDR=$(HOOKS_ADDR)
 
 $(HOOKS_BIN): $(HOOKS_ELF)
-	$(OBJCOPY) -S -O binary $< $@
+	$(call print_two_args,Wrapping hooks binary to ELF:,$<,$@)
+	$(V)$(OBJCOPY) -S -O binary $< $@
 
 $(HOOKS_GAME_ELF): $(HOOKS_GAME_OBJ)
-	$(LD) -o $@ $^ $(HOOKS_LDFLAGS) -Wl,-Map,$(HOOKS_GAME_MAP) -Wl,--defsym=HOOKS_ADDR=$(HOOKS_GAME_ADDR)
+	$(call print_one_arg,Linking hooks:,$@)
+	$(V)$(LD) -o $@ $^ $(HOOKS_LDFLAGS) -Wl,-Map,$(HOOKS_GAME_MAP) -Wl,--defsym=HOOKS_ADDR=$(HOOKS_GAME_ADDR)
 
 $(HOOKS_GAME_BIN): $(HOOKS_GAME_ELF)
-	$(OBJCOPY) -S -O binary $< $@
+	$(call print_two_args,Wrapping hooks binary to ELF:,$<,$@)
+	$(V)$(OBJCOPY) -S -O binary $< $@
