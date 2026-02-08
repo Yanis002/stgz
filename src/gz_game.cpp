@@ -4,7 +4,7 @@
 
 #include <System/OverlayManager.hpp>
 #include <System/Random.hpp>
-#include <Unknown/UnkStruct_02049a2c.hpp>
+#include <Game/Game.hpp>
 #include <Unknown/UnkStruct_02049b74.hpp>
 #include <Unknown/UnkStruct_02049bd4.hpp>
 #include <Unknown/UnkStruct_0204a110.hpp>
@@ -55,7 +55,7 @@ void CustomGame::ExecutePause() {
     }
 }
 
-void CustomGame::Run(unk32 param1) {
+void CustomGame::Run() {
     gGZ.prevGameModeOvl = OverlayIndex_StartUp;
 
     do {

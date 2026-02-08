@@ -1,10 +1,10 @@
 #pragma once
 
-#include <Unknown/UnkStruct_02049a2c.hpp>
+#include <Game/Game.hpp>
 
-// IMPORTANT: this should match `UnkStruct_02049a2c` exactly!
-class CustomGame : public UnkStruct_02049a2c {
+// IMPORTANT: this should match `Game` exactly!
+class CustomGame : public Game {
 public:
-    void Run(unk32 param1);
+    void Run();
     void ExecutePause();
 };

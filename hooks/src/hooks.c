@@ -5,11 +5,9 @@
  * Make sure to make it as small as possible!
  */
 
-extern void _ZN18UnkStruct_02049a2c19func_ov018_020c48f8Ev(void* ptr);
+extern void _ZN4Game19func_ov018_020c48f8Ev(void* ptr);
 extern void FS_LoadOverlay(int param1, int overlayID);
 extern void GZ_Init();
-extern void main(int param1, int param2);
-extern void GZ_Main(int param1);
 
 #ifndef __INTELLISENSE__
 #ifndef GZ_OVL_ID
@@ -28,7 +26,7 @@ extern void GZ_Main(int param1);
 
 // init hook: replace the `func_ov018_020c48f8` call from `GameModeStartUp::vfunc_0C` so we can load and init the gz overlay
 void GZ_InitHook(void* ptr) {
-    _ZN18UnkStruct_02049a2c19func_ov018_020c48f8Ev(ptr);
+    _ZN4Game19func_ov018_020c48f8Ev(ptr);
 
     // make sure overlay 0 has completed loading
     while (nOverlay0 != 0) {}

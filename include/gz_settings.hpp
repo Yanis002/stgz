@@ -2,7 +2,7 @@
 
 #include "gz.hpp"
 
-#include <Unknown/UnkStruct_02049a2c.hpp>
+#include <Game/Game.hpp>
 #include <System/OverlayManager.hpp>
 #include <types.h>
 

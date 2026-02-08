@@ -16,7 +16,7 @@ void GZSettings::ProcessBootMode() {
         case BOOT_MODE_TITLE:
             break;
         case BOOT_MODE_FILE_SELECT:
-            data_02049a2c.createCallback = (GameModeCreateCallback)UnkStruct_0204a060::func_02018424;
+            gGame.createCallback = (GameModeCreateCallback)UnkStruct_0204a060::func_02018424;
             break;
         case BOOT_MODE_ADVENTURE:
             break;

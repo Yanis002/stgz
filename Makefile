@@ -47,6 +47,8 @@ STGZ_DECOMP_DIR ?= resources/decomp
 # game region, only eur is supported atm
 REGION := eur
 
+COMPARE ?= 1
+
 ### project tools ###
 
 MAKE = make
@@ -70,7 +72,7 @@ DSROM := tools/dsrom
 
 # armips setup
 ARMIPS_DIR := tools/armips
-ARMIPS ?= $(ARMIPS_DIR)/build/armips
+ARMIPS ?= $(ARMIPS_DIR)/out/armips
 
 # main source/objects
 BUILD_DIR := build/$(REGION)
@@ -111,8 +113,10 @@ RESERVED_SIZE := 0x10
 RESERVED_ADDR := $(shell $(PYTHON) -c "print(f'0x{$(OVLGZ_ADDR) + $(OVLGZ_SIZE) - $(RESERVED_SIZE):08X}')")
 
 # compiler settings
-CC := arm-none-eabi-gcc -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -nostdlib -nodefaultlibs -nostartfiles
-WARNINGS := -Wall -Wno-multichar -Wno-unknown-pragmas
+CFLAGS_BASE := -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -nostdlib -nodefaultlibs -nostartfiles
+CC := arm-none-eabi-gcc $(CFLAGS_BASE)
+CXX := arm-none-eabi-g++ $(CFLAGS_BASE)
+WARNINGS := -Wall -Wno-multichar -Wno-unknown-pragmas -Wno-strict-aliasing -Wno-unused-variable
 INCLUDES := -I include -I $(STGZ_DECOMP_DIR)/include -I $(STGZ_DECOMP_DIR)/libs/c/include
 CPP_DEFINES := -DGZ_OVL_ID=114 -DPACKAGE_VERSION='$(PACKAGE_VERSION)' -DPACKAGE_NAME='$(PACKAGE_NAME)' -DPACKAGE_COMMIT_AUTHOR='$(PACKAGE_COMMIT_AUTHOR)' -DPACKAGE_AUTHOR='$(PACKAGE_AUTHOR)'
 CFLAGS := -Os -fno-short-enums -fomit-frame-pointer -ffast-math -fno-builtin -fshort-wchar -MMD -MP $(WARNINGS) $(INCLUDES) $(CPP_DEFINES)
@@ -199,7 +203,9 @@ hooks: overlay $(HOOKS_BIN) $(HOOKS_GAME_BIN)
 
 init: venv libs
 	$(call print_no_args,Verifying baserom checksum...)
+ifeq ($(COMPARE),1)
 	$(V)sha1sum -c $(EXTRACT_DIR)/baserom_st_$(REGION).sha1
+endif
 	$(V)$(DL_TOOL) dsrom v0.6.1
 ifeq ("$(wildcard $(ARMIPS_DIR))", "")
 	$(error armips not found!)
@@ -255,7 +261,7 @@ $(BUILD_DIR)/src/%.o: src/%.c
 
 $(BUILD_DIR)/src/%.o: src/%.cpp
 	$(call print_two_args,Compiling:,$<,$@)
-	$(V)$(CC) $(CPP_FLAGS) -c "$<" -o "$@"
+	$(V)$(CXX) $(CPP_FLAGS) -c "$<" -o "$@"
 
 $(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.c
 	$(call print_two_args,Compiling hooks:,$<,$@)
@@ -263,7 +269,7 @@ $(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.c
 
 $(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.cpp
 	$(call print_two_args,Compiling hooks:,$<,$@)
-	$(V)$(CC) $(CPP_FLAGS) -c "$<" -o "$@"
+	$(V)$(CXX) $(CPP_FLAGS) -c "$<" -o "$@"
 
 ## process build artifacts ##
 

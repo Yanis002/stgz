@@ -1,6 +1,6 @@
 #include <System/OverlayManager.hpp>
 #include <System/Random.hpp>
-#include <Unknown/UnkStruct_02049a2c.hpp>
+#include <Game/Game.hpp>
 #include <Unknown/UnkStruct_02049b74.hpp>
 #include <Unknown/UnkStruct_02049bd4.hpp>
 #include <Unknown/UnkStruct_0204a110.hpp>
@@ -8,10 +8,10 @@
 #include <Unknown/UnkStruct_027e0208.hpp>
 #include <regs.h>
 
-extern "C" void GZ_Main(int param1);
+extern "C" void GZ_Main();
 
-class StartUpMain : public UnkStruct_02049a2c {
-    void Run(unk32 param1);
+class StartUpMain : public Game {
+    void Run();
 };
 
 extern "C" void func_020196fc();
@@ -34,8 +34,8 @@ struct SomeSaveFileStruct {
 };
 
 // shorter version of the main loop specifically for boot time, no idea if this affects things later though...
-void StartUpMain::Run(unk32 param1) {
-    this->func_ov018_020c48a4(param1);
+void StartUpMain::Run() {
+    this->func_ov018_020c48a4();
 
     do {
         // initialization of the next game mode
@@ -76,5 +76,5 @@ void StartUpMain::Run(unk32 param1) {
         func_020132c8();
     } while (gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_StartUp);
 
-    GZ_Main(param1);
+    GZ_Main();
 }
