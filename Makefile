@@ -43,6 +43,7 @@ SHELL = /usr/bin/env bash
 
 # path to decomp, defaults to the submodule's path
 STGZ_DECOMP_DIR ?= resources/decomp
+STGZ_EMULATOR ?=
 
 # game region, only eur is supported atm
 REGION := eur
@@ -228,6 +229,12 @@ overlay: $(BIN)
 	$(V)$(PYTHON) tools/gen_libs.py -m libgz -e $(ELF)
 	$(call print_no_args,Success!)
 
+run: all
+ifeq ($(STGZ_EMULATOR),)
+	$(error "Emulator path not set.")
+endif
+	$(STGZ_EMULATOR) $(OUT_ROM)
+
 setup: extract
 
 venv:
@@ -239,7 +246,7 @@ venv:
 	$(V)$(PYTHON) -m pip install -U -r tools/requirements.txt
 	$(call print_no_args,Success!)
 
-.PHONY: all build clean distclean extract hooks init libs overlay setup venv
+.PHONY: all build clean distclean extract hooks init libs overlay run setup venv
 
 ### misc project recipes ###
 
