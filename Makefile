@@ -47,6 +47,8 @@ STGZ_DECOMP_DIR ?= resources/decomp
 # game region, only eur is supported atm
 REGION := eur
 
+COMPARE ?= 1
+
 ### project tools ###
 
 MAKE = make
@@ -70,14 +72,15 @@ DSROM := tools/dsrom
 
 # armips setup
 ARMIPS_DIR := tools/armips
-ARMIPS ?= $(ARMIPS_DIR)/build/armips
+ARMIPS ?= $(ARMIPS_DIR)/out/armips
 
 # main source/objects
 BUILD_DIR := build/$(REGION)
-ASM_FILES := $(wildcard src/*.s)
-C_FILES := $(wildcard src/*.c)
-CPP_FILES := $(wildcard src/*.cpp)
-OBJ := $(foreach f,$(ASM_FILES),$(BUILD_DIR)/$(f:.s=.o)) $(foreach f,$(C_FILES),$(BUILD_DIR)/$(f:.c=.o)) $(foreach f,$(CPP_FILES),$(BUILD_DIR)/$(f:.cpp=.o)) $(BUILD_DIR)/thumb-$(REGION).o
+ALL_FILES := $(shell find src/ -path "src/thumb" -prune -o -print)
+ASM_FILES := $(filter %.s, $(ALL_FILES))
+C_FILES := $(filter %.c, $(ALL_FILES))
+CPP_FILES := $(filter %.cpp, $(ALL_FILES))
+OBJ := $(foreach f,$(ASM_FILES),$(BUILD_DIR)/$(f:.s=.o)) $(foreach f,$(C_FILES),$(BUILD_DIR)/$(f:.c=.o)) $(foreach f,$(CPP_FILES),$(BUILD_DIR)/$(f:.cpp=.o)) $(BUILD_DIR)/src/thumb/thumb-$(REGION).o
 DEPS := $(foreach f,$(ASM_FILES),$(BUILD_DIR)/$(f:.s=.d)) $(foreach f,$(C_FILES),$(BUILD_DIR)/$(f:.c=.d)) $(foreach f,$(CPP_FILES),$(BUILD_DIR)/$(f:.cpp=.d))
 
 # hooks source/objects
@@ -111,8 +114,10 @@ RESERVED_SIZE := 0x10
 RESERVED_ADDR := $(shell $(PYTHON) -c "print(f'0x{$(OVLGZ_ADDR) + $(OVLGZ_SIZE) - $(RESERVED_SIZE):08X}')")
 
 # compiler settings
-CC := arm-none-eabi-gcc -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -nostdlib -nodefaultlibs -nostartfiles
-WARNINGS := -Wall -Wno-multichar -Wno-unknown-pragmas
+CFLAGS_BASE := -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -nostdlib -nodefaultlibs -nostartfiles
+CC := arm-none-eabi-gcc $(CFLAGS_BASE)
+CXX := arm-none-eabi-g++ $(CFLAGS_BASE)
+WARNINGS := -Wall -Wno-multichar -Wno-unknown-pragmas -Wno-strict-aliasing -Wno-unused-variable
 INCLUDES := -I include -I $(STGZ_DECOMP_DIR)/include -I $(STGZ_DECOMP_DIR)/libs/c/include
 CPP_DEFINES := -DGZ_OVL_ID=114 -DPACKAGE_VERSION='$(PACKAGE_VERSION)' -DPACKAGE_NAME='$(PACKAGE_NAME)' -DPACKAGE_COMMIT_AUTHOR='$(PACKAGE_COMMIT_AUTHOR)' -DPACKAGE_AUTHOR='$(PACKAGE_AUTHOR)'
 CFLAGS := -Os -fno-short-enums -fomit-frame-pointer -ffast-math -fno-builtin -fshort-wchar -MMD -MP $(WARNINGS) $(INCLUDES) $(CPP_DEFINES)
@@ -136,8 +141,8 @@ HOOKS_GAME_BIN := $(HOOKS_GAME_ELF:.elf=.bin)
 HOOKS_GAME_MAP := $(HOOKS_GAME_ELF:.elf=.map)
 
 # create output directories
-$(shell mkdir -p $(BUILD_DIR)/src)
-$(shell mkdir -p $(HOOKS_BUILD_DIR)/src)
+$(shell $(MKDIR) -p $(BUILD_DIR)/src/thumb)
+$(shell $(MKDIR) -p $(HOOKS_BUILD_DIR)/src)
 
 ### project settings ###
 
@@ -197,9 +202,11 @@ extract:
 
 hooks: overlay $(HOOKS_BIN) $(HOOKS_GAME_BIN)
 
-init: venv libs
+init: venv
 	$(call print_no_args,Verifying baserom checksum...)
+ifeq ($(COMPARE),1)
 	$(V)sha1sum -c $(EXTRACT_DIR)/baserom_st_$(REGION).sha1
+endif
 	$(V)$(DL_TOOL) dsrom v0.6.1
 ifeq ("$(wildcard $(ARMIPS_DIR))", "")
 	$(error armips not found!)
@@ -212,7 +219,7 @@ endif
 
 libs:
 	$(call print_no_args,Generating game symbol library...)
-	$(V)$(PYTHON) tools/gen_libs.py -m libst -d $(STGZ_DECOMP_DIR) -b build
+	$(V)$(PYTHON) tools/gen_libs.py -m libst -d $(STGZ_DECOMP_DIR)
 	$(call print_no_args,Success!)
 
 overlay: $(BIN)
@@ -240,7 +247,7 @@ venv:
 
 ## process auto-generated thumb definitions (necessary to avoid crashes when calling thumb functions) ##
 
-$(BUILD_DIR)/thumb-$(REGION).o: build/thumb-$(REGION).s
+$(BUILD_DIR)/src/thumb/thumb-$(REGION).o: src/thumb/thumb-$(REGION).s
 	$(V)$(CC) $(CFLAGS) -fverbose-asm -Os -x assembler-with-cpp -fomit-frame-pointer -c "$<" -o "$@"
 
 ## process source files ##
@@ -255,7 +262,7 @@ $(BUILD_DIR)/src/%.o: src/%.c
 
 $(BUILD_DIR)/src/%.o: src/%.cpp
 	$(call print_two_args,Compiling:,$<,$@)
-	$(V)$(CC) $(CPP_FLAGS) -c "$<" -o "$@"
+	$(V)$(CXX) $(CPP_FLAGS) -c "$<" -o "$@"
 
 $(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.c
 	$(call print_two_args,Compiling hooks:,$<,$@)
@@ -263,7 +270,7 @@ $(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.c
 
 $(HOOKS_BUILD_DIR)/src/%.o: hooks/src/%.cpp
 	$(call print_two_args,Compiling hooks:,$<,$@)
-	$(V)$(CC) $(CPP_FLAGS) -c "$<" -o "$@"
+	$(V)$(CXX) $(CPP_FLAGS) -c "$<" -o "$@"
 
 ## process build artifacts ##
 

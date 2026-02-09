@@ -9,6 +9,6 @@ extern "C" void GZ_Init() {
 }
 
 // this function is called by the main hook, see `GameReplacement::Run`
-extern "C" void GZ_Main(int param1) {
-    ((CustomGame*)&data_02049a2c)->Run(param1);
+extern "C" void GZ_Main() {
+    ((CustomGame*)&gGame)->Run();
 }
