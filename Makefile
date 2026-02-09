@@ -76,10 +76,11 @@ ARMIPS ?= $(ARMIPS_DIR)/out/armips
 
 # main source/objects
 BUILD_DIR := build/$(REGION)
-ASM_FILES := $(wildcard src/*.s)
-C_FILES := $(wildcard src/*.c)
-CPP_FILES := $(wildcard src/*.cpp)
-OBJ := $(foreach f,$(ASM_FILES),$(BUILD_DIR)/$(f:.s=.o)) $(foreach f,$(C_FILES),$(BUILD_DIR)/$(f:.c=.o)) $(foreach f,$(CPP_FILES),$(BUILD_DIR)/$(f:.cpp=.o)) $(BUILD_DIR)/thumb-$(REGION).o
+ALL_FILES := $(shell find src/ -path "src/thumb" -prune -o -print)
+ASM_FILES := $(filter %.s, $(ALL_FILES))
+C_FILES := $(filter %.c, $(ALL_FILES))
+CPP_FILES := $(filter %.cpp, $(ALL_FILES))
+OBJ := $(foreach f,$(ASM_FILES),$(BUILD_DIR)/$(f:.s=.o)) $(foreach f,$(C_FILES),$(BUILD_DIR)/$(f:.c=.o)) $(foreach f,$(CPP_FILES),$(BUILD_DIR)/$(f:.cpp=.o)) $(BUILD_DIR)/src/thumb/thumb-$(REGION).o
 DEPS := $(foreach f,$(ASM_FILES),$(BUILD_DIR)/$(f:.s=.d)) $(foreach f,$(C_FILES),$(BUILD_DIR)/$(f:.c=.d)) $(foreach f,$(CPP_FILES),$(BUILD_DIR)/$(f:.cpp=.d))
 
 # hooks source/objects
@@ -140,8 +141,8 @@ HOOKS_GAME_BIN := $(HOOKS_GAME_ELF:.elf=.bin)
 HOOKS_GAME_MAP := $(HOOKS_GAME_ELF:.elf=.map)
 
 # create output directories
-$(shell mkdir -p $(BUILD_DIR)/src)
-$(shell mkdir -p $(HOOKS_BUILD_DIR)/src)
+$(shell $(MKDIR) -p $(BUILD_DIR)/src/thumb)
+$(shell $(MKDIR) -p $(HOOKS_BUILD_DIR)/src)
 
 ### project settings ###
 
@@ -218,7 +219,7 @@ endif
 
 libs:
 	$(call print_no_args,Generating game symbol library...)
-	$(V)$(PYTHON) tools/gen_libs.py -m libst -d $(STGZ_DECOMP_DIR) -b build
+	$(V)$(PYTHON) tools/gen_libs.py -m libst -d $(STGZ_DECOMP_DIR)
 	$(call print_no_args,Success!)
 
 overlay: $(BIN)
@@ -246,7 +247,7 @@ venv:
 
 ## process auto-generated thumb definitions (necessary to avoid crashes when calling thumb functions) ##
 
-$(BUILD_DIR)/thumb-$(REGION).o: build/thumb-$(REGION).s
+$(BUILD_DIR)/src/thumb/thumb-$(REGION).o: src/thumb/thumb-$(REGION).s
 	$(V)$(CC) $(CFLAGS) -fverbose-asm -Os -x assembler-with-cpp -fomit-frame-pointer -c "$<" -o "$@"
 
 ## process source files ##

@@ -14,7 +14,6 @@ from pathlib import Path
 parser = argparse.ArgumentParser()
 parser.add_argument("-m", "--mode", required=True)
 parser.add_argument("-d", "--decomp", type=Path)
-parser.add_argument("-b", "--build_dir", type=Path)
 parser.add_argument("-e", "--elf")
 args = parser.parse_args()
 
@@ -66,8 +65,7 @@ def gen_libst(libs_dir: Path):
 
                 out_libs[version] += f"{sym_name} = 0x{addr:08X};\n"
 
-    assert args.build_dir is not None, "argument missing: '--build_dir'"
-    thumb_dir: Path = args.build_dir.resolve()
+    thumb_dir = Path("src").resolve() / "thumb"
     thumb_dir.mkdir(exist_ok=True, parents=True)
 
     thumb_header = [
