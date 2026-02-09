@@ -25,9 +25,7 @@ You will need the following packages/tools:
 - `git`
 - `make`
 - `cmake`
-- `arm-none-eabi-objcopy`
-- `arm-none-eabi-nm`
-- `gcc-arm-none-eabi`
+- `gcc-arm-none-eabi` ([arch-based users](https://aur.archlinux.org/packages/gcc-arm-none-eabi-bin), [debian-based users](https://launchpad.net/ubuntu/+source/gcc-arm-none-eabi))
 
 Steps:
 - Place a baserom in the `extract` folder and name it `baserom_st_REGION.nds`, `REGION` being `eur`, `us` or `jp` (Note: only the european version is supported currently).

@@ -101,7 +101,9 @@ class Symbols:
         self.entries: list[Symbol] = []
 
         assert args.elf is not None, "argument missing: '--elf'"
-        lines = subprocess.check_output(["arm-none-eabi-nm", args.elf], text=True).splitlines()
+        nm_path = Path("tools/binutils/arm-none-eabi-nm").resolve()
+        assert nm_path.exists(), "binutils is missing"
+        lines = subprocess.check_output([str(nm_path), args.elf], text=True).splitlines()
 
         for line in lines:
             sym_addr, sym_type, sym_name = line.split(" ")

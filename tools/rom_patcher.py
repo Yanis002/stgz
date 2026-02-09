@@ -35,7 +35,9 @@ class Symbol:
 
     @staticmethod
     def new(name: str, elf_path: str = args.elf):
-        lines = subprocess.check_output(["arm-none-eabi-nm", elf_path], text=True).split("\n")
+        nm_path = Path("tools/binutils/arm-none-eabi-nm").resolve()
+        assert nm_path.exists(), "binutils is missing"
+        lines = subprocess.check_output([str(nm_path), elf_path], text=True).split("\n")
 
         found = False
         line = None

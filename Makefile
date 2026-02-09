@@ -62,7 +62,7 @@ VENV := .venv
 PYTHON ?= $(VENV)/bin/python3
 
 # download tool (took from st decomp)
-DL_TOOL := $(PYTHON) tools/download_tool.py -p tools/
+DL_TOOL := $(PYTHON) tools/download_tool.py
 
 # rom patcher tool
 ROM_PATCHER := $(PYTHON) tools/rom_patcher.py
@@ -128,7 +128,7 @@ BIN := $(ELF:.elf=.bin)
 MAP := $(ELF:.elf=.map)
 LD := $(CC)
 LDFLAGS := -T libs/ovgz.ld -Llibs -lst-$(REGION) -Wl,-Map,$(MAP) -specs=nosys.specs -Wl,--gc-sections -Wl,--defsym=OVLGZ_ADDR=$(OVLGZ_ADDR) -Wl,--defsym=OVLGZ_SIZE=$(OVLGZ_SIZE) -Wl,--defsym=RESERVED_SIZE=$(RESERVED_SIZE)
-OBJCOPY := arm-none-eabi-objcopy
+OBJCOPY := tools/binutils/arm-none-eabi-objcopy
 
 HOOKS_ELF := $(HOOKS_BUILD_DIR)/hooks.elf
 HOOKS_BIN := $(HOOKS_ELF:.elf=.bin)
@@ -207,7 +207,8 @@ init: venv
 ifeq ($(COMPARE),1)
 	$(V)sha1sum -c $(EXTRACT_DIR)/baserom_st_$(REGION).sha1
 endif
-	$(V)$(DL_TOOL) dsrom v0.6.1
+	$(V)$(DL_TOOL) -p tools/ dsrom v0.6.1
+	$(V)$(DL_TOOL) -p tools/ binutils arm-2.42-0
 ifeq ("$(wildcard $(ARMIPS_DIR))", "")
 	$(error armips not found!)
 else
