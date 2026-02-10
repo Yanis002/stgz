@@ -1,10 +1,11 @@
 #include "gz_game.hpp"
 #include "gz.hpp"
 #include "gz_settings.hpp"
+#include "gz_menu.hpp"
 
+#include <Game/Game.hpp>
 #include <System/OverlayManager.hpp>
 #include <System/Random.hpp>
-#include <Game/Game.hpp>
 #include <Unknown/UnkStruct_02049b74.hpp>
 #include <Unknown/UnkStruct_02049bd4.hpp>
 #include <Unknown/UnkStruct_0204a110.hpp>
@@ -25,7 +26,7 @@ extern "C" void func_02028100(int enabled);
 extern Mat3p data_027e02c4;
 
 struct SomeSaveFileStruct {
-    /* 00 */ SaveFile *mpSaveFiles[MAX_SAVE_SLOTS];
+    /* 00 */ SaveFile* mpSaveFiles[MAX_SAVE_SLOTS];
 
     SomeSaveFileStruct(unk32 param1);
     ~SomeSaveFileStruct();
@@ -34,11 +35,11 @@ struct SomeSaveFileStruct {
 void CustomGame::ExecutePause() {
     data_02049b18.func_02013840(data_0204a110.mUnk_004, data_0204a110.func_02019300(data_0204a110.mUnk_DF8));
 
-    if (this->mFrameCounter + data_0204a110.mUnk_004 - (s32)SHARED_WORK_C3C > 1) {
+    if (this->mFrameCounter + data_0204a110.mUnk_004 - (s32)REG_FRAME_COUNTER > 1) {
         func_0201328c();
     }
 
-    while (this->mFrameCounter + data_0204a110.mUnk_004 - (s32)SHARED_WORK_C3C > 1) {
+    while (this->mFrameCounter + data_0204a110.mUnk_004 - (s32)REG_FRAME_COUNTER > 1) {
         func_020132c8();
     }
 
@@ -59,9 +60,17 @@ void CustomGame::Run() {
     gGZ.prevGameModeOvl = OverlayIndex_StartUp;
 
     do {
+        {
+            gMenuManager.Update();
+
+            if (gMenuManager.IsActive()) {
+                gMenuManager.Draw();
+            } 
+        }
+
         // stgz: pause and frame advance block
         {
-            u32 curFrameCount = SHARED_WORK_C3C;
+            u32 curFrameCount = REG_FRAME_COUNTER;
 
             // if we have game frames to draw and it's not pausing enable the pause then decrease the queue value
             if (gGZ.mState.requestedFrames > 0) {
@@ -73,7 +82,7 @@ void CustomGame::Run() {
             } else {
                 // if it's paused and there is no frames left to execute then do the pause
                 if (gGZ.mState.isPaused) {
-                    SHARED_WORK_C3C = curFrameCount; // freeze frame count
+                    REG_FRAME_COUNTER = curFrameCount; // freeze frame count
                     this->ExecutePause(); // execute the necessary code to avoid crashes
                     gGZ.Update(); // keep updating gz
                     continue;
@@ -95,7 +104,7 @@ void CustomGame::Run() {
 
                 func_020196fc();
                 data_02049b18.func_02013768();
-                this->mFrameCounter = SHARED_WORK_C3C;
+                this->mFrameCounter = REG_FRAME_COUNTER;
 
                 this->mpCurrentGameMode = this->createCallback();
                 this->createCallback = NULL;
@@ -168,7 +177,7 @@ void CustomGame::Run() {
 
             this->mpCurrentGameMode->vfunc_1C();
             func_01ff8d38();
-            data_0204a110.func_02019454();
+            data_0204a110.func_02019454(); // draw obj?
             this->mpCurrentGameMode->vfunc_20();
 
             if (gOverlayManager.mLoadedOverlays[OverlaySlot_Second] == OverlayIndex_Second) {
@@ -180,12 +189,13 @@ void CustomGame::Run() {
         }
 
         //! TODO: decomp has regalloc issues on those operators but oh well...
-        if (this->mFrameCounter + data_0204a110.mUnk_004 - (s32)SHARED_WORK_C3C > 1) {
+        if (this->mFrameCounter + data_0204a110.mUnk_004 - (s32)REG_FRAME_COUNTER > 1) {
             func_0201328c();
         }
 
-        // testing notes: this seems to be used to slow down the execution of the game, commenting this out makes adventure mode run at full speed
-        while (this->mFrameCounter + data_0204a110.mUnk_004 - (s32)SHARED_WORK_C3C > 1) {
+        // testing notes: this seems to be used to slow down the execution of the game, commenting this out makes
+        // adventure mode run at full speed
+        while (this->mFrameCounter + data_0204a110.mUnk_004 - (s32)REG_FRAME_COUNTER > 1) {
             func_020132c8();
         }
 
@@ -200,14 +210,13 @@ void CustomGame::Run() {
 
         if (this->mUnk_18 != NULL) {
             while (this->mUnk_18() != 0) {
-                while (this->mUnk_1C.func_02013e18((void*)func_02013354, 0) == 0) {
-                }
+                while (this->mUnk_1C.func_02013e18((void*)func_02013354, 0) == 0) {}
 
                 func_020132c8();
             }
         }
 
-        this->mFrameCounter = SHARED_WORK_C3C;
+        this->mFrameCounter = REG_FRAME_COUNTER;
 
         gGZ.Update();
     } while (true);

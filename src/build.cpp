@@ -1,31 +1,28 @@
-#define LITTLEENDIANIFY2(x) L ## x
-#define LITTLEENDIANIFY(x) LITTLEENDIANIFY2(x)
-
-#define STRINGIFY(s) LITTLEENDIANIFY(#s)
+#define STRINGIFY(s) #s
 #define EXPAND_AND_STRINGIFY(s) STRINGIFY(s)
 
 #ifdef PACKAGE_AUTHOR
-extern "C" const wchar_t gBuildAuthor[] = EXPAND_AND_STRINGIFY(PACKAGE_AUTHOR);
+extern "C" const char gBuildAuthor[] = EXPAND_AND_STRINGIFY(PACKAGE_AUTHOR);
 #else
-extern "C" const wchar_t gBuildAuthor[] = L"???";
+extern "C" const char gBuildAuthor[] = "???";
 #endif
 
 #ifdef PACKAGE_COMMIT_AUTHOR
-extern "C" const wchar_t gCommitAuthor[] = EXPAND_AND_STRINGIFY(PACKAGE_COMMIT_AUTHOR);
+extern "C" const char gCommitAuthor[] = EXPAND_AND_STRINGIFY(PACKAGE_COMMIT_AUTHOR);
 #else
-extern "C" const wchar_t gCommitAuthor[] = L"???";
+extern "C" const char gCommitAuthor[] = "???";
 #endif
 
-extern "C" const wchar_t gBuildDate[] = LITTLEENDIANIFY(__DATE__) L" " LITTLEENDIANIFY(__TIME__);
+extern "C" const char gBuildDate[] = __DATE__ " " __TIME__;
 
 #ifdef PACKAGE_VERSION
-extern "C" const wchar_t gBuildGitVersion[] = EXPAND_AND_STRINGIFY(PACKAGE_VERSION);
+extern "C" const char gBuildGitVersion[] = EXPAND_AND_STRINGIFY(PACKAGE_VERSION);
 #else
-extern "C" const wchar_t gBuildGitVersion[] = L"???";
+extern "C" const char gBuildGitVersion[] = "???";
 #endif
 
 #ifdef PACKAGE_NAME
-extern "C" const wchar_t gCommitGitString[] = EXPAND_AND_STRINGIFY(PACKAGE_NAME);
+extern "C" const char gCommitGitString[] = EXPAND_AND_STRINGIFY(PACKAGE_NAME);
 #else
-extern "C" const wchar_t gCommitGitString[] = L"???";
+extern "C" const char gCommitGitString[] = "???";
 #endif

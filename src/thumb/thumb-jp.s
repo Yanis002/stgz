@@ -160,7 +160,7 @@ thumb_func DisplayAssertError, 0x020124F1
 thumb_func _ZN8SysFault13func_020125a4EPctS0_z, 0x020125A5
 thumb_func func_020125c8, 0x020125C9
 thumb_func func_020125d4, 0x020125D5
-thumb_func func_020127f0, 0x020127F1
+thumb_func _ZN8SysFault13func_020127f0Ei, 0x020127F1
 thumb_func func_02012b00, 0x02012B01
 thumb_func func_02012c88, 0x02012C89
 thumb_func func_02012d34, 0x02012D35

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mem.hpp"
+#include "gz_menu.hpp"
 
 #include <mem.h>
 #include <Player/TouchControl.hpp>
@@ -8,6 +9,8 @@
 #include <Unknown/UnkStruct_02049b18.hpp>
 #include <Unknown/Common.hpp>
 #include <System/OverlayManager.hpp>
+#include <Unknown/UnkStruct_02049b74.hpp>
+#include <Unknown/UnkStruct_0204a110.hpp>
 
 class GameGZ;
 
@@ -28,12 +31,14 @@ public:
     TouchControl* mpTouchControl;
     OverlayIndex prevGameModeOvl;
     GZState mState;
-    // UnkSystem2_UnkSubSystem5 mTest;
 
-    GZ() : mpButtons(&data_02049b18.mButtons), mpTouchControl(&data_02049b18.mUnk_06.mTouchControl), prevGameModeOvl(OverlayIndex_None) /* , mTest(0x89, 0x01) */ {
-        // mTest.func_0201f730(0x00000001);
-    }
+    GZ() : mpButtons(&data_02049b18.mButtons), mpTouchControl(&data_02049b18.mUnk_06.mTouchControl), prevGameModeOvl(OverlayIndex_None) {}
     ~GZ() {}
+
+    void UpdateInputs() {
+        data_02049b74.func_02013a44(data_0204a110.mUnk_004);
+        data_02049b18.func_02013840(data_0204a110.mUnk_004, data_0204a110.func_02019300(data_0204a110.mUnk_DF8));
+    }
 
     // global init
     void Init();

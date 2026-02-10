@@ -2,9 +2,6 @@
 
 WIP practice tools for The Legend of Zelda: Spirit Tracks.
 
-Currently stuck on the following issues:
-- displaying text on-screen
-
 **IMPORTANT**: this project doesn't provide any protected IPs, users are required to provide the necessary files by their own means and we won't help anyone in this regard.
 
 ## Planned Features
