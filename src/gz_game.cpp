@@ -2,6 +2,7 @@
 #include "gz.hpp"
 #include "gz_settings.hpp"
 #include "gz_menu.hpp"
+#include "gz_commands.hpp"
 
 #include <Game/Game.hpp>
 #include <System/OverlayManager.hpp>
@@ -60,12 +61,14 @@ void CustomGame::Run() {
     gGZ.prevGameModeOvl = OverlayIndex_StartUp;
 
     do {
+        gGZ.Update();
+
         {
             gMenuManager.Update();
 
             if (gMenuManager.IsActive()) {
                 gMenuManager.Draw();
-            } 
+            }
         }
 
         // stgz: pause and frame advance block
@@ -83,8 +86,8 @@ void CustomGame::Run() {
                 // if it's paused and there is no frames left to execute then do the pause
                 if (gGZ.mState.isPaused) {
                     REG_FRAME_COUNTER = curFrameCount; // freeze frame count
+                    gGZ.OnGameModeUpdate();
                     this->ExecutePause(); // execute the necessary code to avoid crashes
-                    gGZ.Update(); // keep updating gz
                     continue;
                 }
             }
@@ -120,6 +123,8 @@ void CustomGame::Run() {
 
         // update of the current game mode
         if (this->mpCurrentGameMode != NULL) {
+            gGZ.OnGameModeUpdate();
+
             if (this->mUnk_08 != NULL) {
                 this->mUnk_08();
                 this->mUnk_08 = NULL;
@@ -184,8 +189,6 @@ void CustomGame::Run() {
                 this->func_ov000_020576d0();
                 this->func_ov000_0205770c();
             }
-
-            gGZ.OnGameModeUpdate();
         }
 
         //! TODO: decomp has regalloc issues on those operators but oh well...
@@ -217,7 +220,5 @@ void CustomGame::Run() {
         }
 
         this->mFrameCounter = REG_FRAME_COUNTER;
-
-        gGZ.Update();
     } while (true);
 }

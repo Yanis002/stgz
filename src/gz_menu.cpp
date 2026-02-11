@@ -41,6 +41,12 @@ Layout:
     - About
 */
 
+struct Screen {
+    u8 unk_00[0x0C];
+    u8 data[0x600];
+};
+extern Screen data_0204d9d0[2];
+
 extern "C" void DisplayDebugText(int, void*, int, int, const char*);
 extern "C" void DisplayDebugTextF(int, void*, int, int, const char*, ...);
 extern "C" void DC_FlushAll();
@@ -212,7 +218,9 @@ GZMenuManager gMenuManager;
 GZMenuManager::GZMenuManager() {
     this->mState.Init();
     this->mpActiveMenu = &sMainMenu;
-    this->mpButtons = &data_02049b18.mButtons;
+    this->mpButtons = &gGZ.mButtons;
+    memset(&data_0204d9d0[0], 0, sizeof(Screen));
+    memset(&data_0204d9d0[1], 0, sizeof(Screen));
 }
 
 bool GZMenuManager::IsInventoryMenuActive() {
@@ -291,9 +299,6 @@ void GZMenuManager::AssignPrevMenu()  {
 void GZMenuManager::Update() {
     GZMenuItem* pActiveMenuItem = this->GetActiveMenuItem();
 
-    // update the inputs
-    gGZ.UpdateInputs();
-
     // toggle the menu when necessary
     if (this->mControls.toggleMenu.Executed(this->mpButtons)) {
         if (!this->mState.isOpened) {
@@ -349,7 +354,7 @@ void GZMenuManager::Update() {
     if (this->mControls.ok.Executed(this->mpButtons)) {
         // handle confirmation stuff
 
-        if (!pActiveMenuItem->needSaveFile || (pActiveMenuItem->needSaveFile && this->IsAdventureMode())) {
+        if (!pActiveMenuItem->needSaveFile || (pActiveMenuItem->needSaveFile && gGZ.IsAdventureMode())) {
             if ((!this->IsAmountsMenuActive() || this->mState.itemIndex == 0) && pActiveMenuItem->mActionCallback != NULL) {
                 pActiveMenuItem->mActionCallback(pActiveMenuItem->params);
 
@@ -424,7 +429,7 @@ void GZMenuManager::SetAmountString(s16 index, Vec2b* pPos, bool selected) {
 
 void GZMenuManager::SetupScreen() {
     // reset the top screen buffer
-    memset((void*)0x0204D9D0, 0, 0x600);
+    memset(&data_0204d9d0[0], 0, sizeof(Screen));
 
     // send the menu item strings to the buffer
     Vec2b elemPos = this->mState.menuPos;
@@ -444,7 +449,7 @@ void GZMenuManager::SetupScreen() {
             } else if (this->IsInventoryMenuActive() && pActiveMenuItem->mSubMenu == NULL) {
                 bool hasItem = GET_FLAG(data_027e0ce0->mUnk_28->mUnk_08, pActiveMenuItem->params & 0xFF);
                 DisplayDebugText(0, &extraPos, 0, selected, hasItem ? " (obtained)" : " (not obtained)");
-            } else if (pActiveMenuItem->needSaveFile && !this->IsAdventureMode()) {
+            } else if (pActiveMenuItem->needSaveFile && !gGZ.IsAdventureMode()) {
                 DisplayDebugText(0, &extraPos, 0, selected, " (disabled)");
             }
         }
@@ -474,11 +479,11 @@ void GZMenuManager::SetupScreen() {
         aboutPos.y++;
         DisplayDebugTextF(0, &aboutPos, 0, 0, "Commit Name: %s", gCommitGitString);
 
-        aboutPos.y += 2;
-        DisplayDebugText(0, &aboutPos, 0, 0, "Licensed under GPL-3.0.");
+        aboutPos.y += 16;
+        DisplayDebugText(0, &aboutPos, 0, 0, "Licensed under GPL-3.0");
 
         aboutPos.y++;
-        DisplayDebugText(0, &aboutPos, 0, 0, "Made with <3 by Yanis2.");
+        DisplayDebugText(0, &aboutPos, 0, 0, "Made with <3 by Yanis2");
     }
 }
 
@@ -498,11 +503,11 @@ void GZMenuManager::StartDraw() {
     
     REG_DISPCNT     = ((REG_DISPCNT & ~0x1F00) | 0x100);
     REG_DISPCNT_SUB = (REG_DISPCNT_SUB & ~0x1F00) | 0x100;
-    func_0201b180(true, false); // loads the font (participate in the corruption also?)
+    func_0201b180(true, true); // loads the font (participate in the corruption also?)
 }
 
 void GZMenuManager::Draw() {
-    func_0201b278(true, false); // copy screen
+    func_0201b278(true, true); // copy screen
     func_020131ec();
     SetBrightColor((void *) &REG_MASTER_BRIGHT, 0);
     SetBrightColor((void *) &REG_MASTER_BRIGHT_SUB, 0);
@@ -513,6 +518,7 @@ void GZMenuManager::Draw() {
 
     while (this->mState.isOpened && !this->mState.requestRedraw) {
         func_020131ec();
+        gGZ.Update();
         this->Update();
     }
 }

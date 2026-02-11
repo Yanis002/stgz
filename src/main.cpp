@@ -8,7 +8,7 @@ extern "C" void GZ_Init() {
     gGZ.Init();
 }
 
-// this function is called by the main hook, see `GameReplacement::Run`
+// this function is called by the main hook, see `StartUpMain::Run`
 extern "C" void GZ_Main() {
     ((CustomGame*)&gGame)->Run();
 }

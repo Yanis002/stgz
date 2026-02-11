@@ -1,4 +1,6 @@
 #include "gz.hpp"
+#include "gz_settings.hpp"
+#include "gz_commands.hpp"
 #include "build.hpp"
 
 #include <nitro/button.h>
@@ -12,21 +14,7 @@ void GZ::Init() {
 }
 
 void GZ::Update() {
-    if (CHECK_BUTTON_COMBO(this->mpButtons->press, BTN_A)) {
-        if (this->mState.isPaused) {
-            this->mState.isPaused = false;
-        } else {
-            this->mState.isPaused = true;
-        }
-    }
-
-    if (CHECK_BUTTON_COMBO(this->mpButtons->cur, BTN_B)) {
-        this->mState.requestedFrames++;
-    }
-
-    if (CHECK_BUTTON_COMBO(this->mpButtons->press, BTN_R)) {
-        this->mState.requestedFrames++;
-    }
+    this->UpdateInputs();
 }
 
 void GZ::OnGameModeInit() {
@@ -34,5 +22,6 @@ void GZ::OnGameModeInit() {
 }
 
 void GZ::OnGameModeUpdate() {
-
+    gCommandManager.Update();
+    gSettings.ProcessTitleScreen();
 }

@@ -3,6 +3,7 @@
 #include "mem.hpp"
 #include "gz_menu.hpp"
 
+#include <regs.h>
 #include <mem.h>
 #include <Player/TouchControl.hpp>
 #include <nitro/button.h>
@@ -27,17 +28,37 @@ struct GZState {
 
 class GZ {
 public:
-    Input* mpButtons;
+    Input mButtons;
     TouchControl* mpTouchControl;
     OverlayIndex prevGameModeOvl;
     GZState mState;
 
-    GZ() : mpButtons(&data_02049b18.mButtons), mpTouchControl(&data_02049b18.mUnk_06.mTouchControl), prevGameModeOvl(OverlayIndex_None) {}
+    GZ() : mpTouchControl(&data_02049b18.mUnk_06.mTouchControl), prevGameModeOvl(OverlayIndex_None) {}
     ~GZ() {}
 
     void UpdateInputs() {
-        data_02049b74.func_02013a44(data_0204a110.mUnk_004);
-        data_02049b18.func_02013840(data_0204a110.mUnk_004, data_0204a110.func_02019300(data_0204a110.mUnk_DF8));
+        // the game has functions but it's better to do it manually to make sure
+        // we have the right values when we execute stuff later
+        u16 input = ~REG_KEYINPUT & 0x03FF;
+        this->mButtons.press = input & ~this->mButtons.cur;
+        this->mButtons.release = ~input & this->mButtons.cur;
+        this->mButtons.cur = input;
+    }
+
+    bool IsAdventureMode() {
+        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_MainGame;
+    }
+
+    bool IsBattleMode() {
+        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_BattleGame;
+    }
+
+    bool IsFileSelect() {
+        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_MainSelect;
+    }
+
+    bool IsTitleScreen() {
+        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_Title;
     }
 
     // global init

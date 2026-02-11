@@ -1,11 +1,11 @@
 #pragma once
 
-#include "mem.h"
+#include "gz_controls.hpp"
 
+#include <mem.h>
 #include <types.h>
 #include <nitro/math.h>
 #include <nitro/button.h>
-#include <System/OverlayManager.hpp>
 #include <Item/ItemManager.hpp>
 
 typedef void (*GZMenuAction)(u32 params);
@@ -55,24 +55,6 @@ struct GZMenuState {
 };
 
 struct GZMenuControls {
-    struct ButtonCombo {
-        u16 held;
-        u16 pressed;
-
-        void Assign(u16 held, u16 pressed) {
-            this->held = held;
-            this->pressed = pressed;
-        }
-
-        bool Executed(Input* pButtons) {
-            if (this->held != 0) {
-                return CHECK_BUTTON_COMBO(pButtons->cur, this->held) && CHECK_BUTTON_COMBO(pButtons->press, this->pressed);
-            }
-
-            return CHECK_BUTTON_COMBO(pButtons->press, this->pressed);
-        }
-    };
-
     ButtonCombo toggleMenu; // open/close the menu
     ButtonCombo back; // go back to the previous submenu
     ButtonCombo up; // move the selection upward
@@ -84,12 +66,12 @@ struct GZMenuControls {
     GZMenuControls() {
         // default controls
         this->toggleMenu.Assign(BTN_R, BTN_L);
-        this->up.Assign(0, BTN_DUP);
-        this->down.Assign(0, BTN_DDOWN);
-        this->ok.Assign(0, BTN_A);
-        this->back.Assign(0, BTN_B);
-        this->decrease.Assign(0, BTN_DLEFT);
-        this->increase.Assign(0, BTN_DRIGHT);
+        this->up.Assign(BTN_DUP);
+        this->down.Assign(BTN_DDOWN);
+        this->ok.Assign(BTN_A);
+        this->back.Assign(BTN_B);
+        this->decrease.Assign(BTN_DLEFT);
+        this->increase.Assign(BTN_DRIGHT);
     }
 };
 
@@ -109,22 +91,6 @@ public:
     void Quit() {
         this->StopDraw();
         this->mState.isOpened = false;
-    }
-
-    bool IsAdventureMode() {
-        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_MainGame;
-    }
-
-    bool IsBattleMode() {
-        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_BattleGame;
-    }
-
-    bool IsFileSelect() {
-        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_MainSelect;
-    }
-
-    bool IsTitleScreen() {
-        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_Title;
     }
 
     GZMenuItem* GetActiveMenuItem() {
