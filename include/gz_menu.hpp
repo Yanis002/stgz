@@ -5,17 +5,31 @@
 #include <types.h>
 #include <nitro/math.h>
 #include <nitro/button.h>
+#include <System/OverlayManager.hpp>
+#include <Item/ItemManager.hpp>
 
 typedef void (*GZMenuAction)(u32 params);
-
 struct GZMenu;
 
+typedef enum InventoryAmountType {
+    InventoryAmountType_Bow,
+    InventoryAmountType_Bombs,
+    InventoryAmountType_QuiverCapacity,
+    InventoryAmountType_BombCapacity,
+    InventoryAmountType_Potion1,
+    InventoryAmountType_Potion2,
+    InventoryAmountType_SmallKeys,
+    InventoryAmountType_LightTears,
+    InventoryAmountType_Max
+} InventoryAmountType;
+
 struct GZMenuItem {
-    const char* mName;
-    GZMenuAction mActionCallback;
-    u32 params;
-    GZMenu* mSubMenu;
-    u32 mSubMenuCount;
+    const char* mName; // menu item name
+    GZMenuAction mActionCallback; // associated action
+    u32 params; // parameters for the action callback
+    GZMenu* mSubMenu; // tied submenu
+    bool needSaveFile; // does it require the save data
+    s32 value; // misc value for internal use
 };
 
 struct GZMenu {
@@ -64,14 +78,18 @@ struct GZMenuControls {
     ButtonCombo up; // move the selection upward
     ButtonCombo down; // move the selection downward
     ButtonCombo ok; // confirm, accept, OK
+    ButtonCombo decrease; // decrease mState.changeBy
+    ButtonCombo increase; // increase mState.changeBy
 
     GZMenuControls() {
         // default controls
         this->toggleMenu.Assign(BTN_R, BTN_L);
-        this->back.Assign(BTN_R, BTN_DLEFT);
         this->up.Assign(0, BTN_DUP);
         this->down.Assign(0, BTN_DDOWN);
         this->ok.Assign(0, BTN_A);
+        this->back.Assign(0, BTN_B);
+        this->decrease.Assign(0, BTN_DLEFT);
+        this->increase.Assign(0, BTN_DRIGHT);
     }
 };
 
@@ -88,19 +106,36 @@ public:
         return this->mState.isOpened;
     }
 
-    void AssignPrevMenu() {
-        if (this->mpActiveMenu->mPrev != NULL) {
-            this->mpActiveMenu = this->mpActiveMenu->mPrev;
-            this->mState.itemIndex = 0;
-            this->mState.requestRedraw = true;
-        }
-    }
-
     void Quit() {
         this->StopDraw();
         this->mState.isOpened = false;
     }
 
+    bool IsAdventureMode() {
+        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_MainGame;
+    }
+
+    bool IsBattleMode() {
+        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_BattleGame;
+    }
+
+    bool IsFileSelect() {
+        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_MainSelect;
+    }
+
+    bool IsTitleScreen() {
+        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_Title;
+    }
+
+    GZMenuItem* GetActiveMenuItem() {
+        return &this->mpActiveMenu->mpItems[this->mState.itemIndex];
+    }
+
+    bool IsInventoryMenuActive();
+    bool IsAmountsMenuActive();
+    void SetAmountString(s16 index, Vec2b* pPos, bool selected);
+    void ValidateNewIncrement();
+    void AssignPrevMenu();
     void Update(); // update routine
     void SetupScreen(); // creates the strings etc
     void StartDraw(); // prepares the game to draw the menu
