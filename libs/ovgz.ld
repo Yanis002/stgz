@@ -64,8 +64,8 @@ SECTIONS
 
     __dso_handle = 0;
 
-    /DISCARD/ : { 
-        *(.comment) 
+    /DISCARD/ : {
+        *(.comment)
         *(.ARM.attributes)
     }
 }

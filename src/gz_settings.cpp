@@ -1,19 +1,20 @@
 #include "gz_settings.hpp"
 #include "gz_menu.hpp"
 
+#include <Game/Game.hpp>
 #include <TitleScreen/TitleScreen.hpp>
 #include <Unknown/UnkStruct_0204a060.hpp>
-#include <Game/Game.hpp>
 #include <Unknown/UnkStruct_ov000_020b5214.hpp>
 
 extern "C" u16 func_02026738(); // OS_GetLockID
-extern "C" void func_020312b8(u32 offset, void *buf, u32 size, void *, void *, u32, u32, u32, u32); // CARD_ReadWriteBackupAsync
+extern "C" void func_020312b8(u32 offset, void* buf, u32 size, void*, void*, u32, u32, u32,
+                              u32); // CARD_ReadWriteBackupAsync
 
-inline void ReadSaveImpl(u32 offset, void *buf, u32 size, void *param4, void *param5) {
+inline void ReadSaveImpl(u32 offset, void* buf, u32 size, void* param4, void* param5) {
     func_020312b8(offset, buf, size, param4, param5, 1, 6, 1, 0);
 }
 
-inline void WriteSaveImpl(u32 offset, void *buf, u32 size, void *param4, void *param5) {
+inline void WriteSaveImpl(u32 offset, void* buf, u32 size, void* param4, void* param5) {
     func_020312b8((u32)buf, (void*)offset, size, param4, param5, 1, 7, 10, 2);
 }
 
@@ -25,13 +26,9 @@ GZSettings::GZSettings() {
     this->ReadSave();
 }
 
-GZSettings::~GZSettings() {
+GZSettings::~GZSettings() {}
 
-}
-
-void GZSettings::Update() {
-    this->ProcessTitleScreen();
-}
+void GZSettings::Update() { this->ProcessTitleScreen(); }
 
 void GZSettings::ProcessTitleScreen() {
     GZProfile* pProfile = this->GetProfile();

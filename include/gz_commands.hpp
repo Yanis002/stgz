@@ -14,7 +14,7 @@ struct GZCmdItem {
 };
 
 class GZCommandManager {
-public:
+  public:
     Input* mpButtons;
     GZCmdItem* mpCommands;
 

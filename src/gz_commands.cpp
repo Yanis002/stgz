@@ -1,10 +1,10 @@
 #include "gz_commands.hpp"
-#include "gz_settings.hpp"
-#include "gz_menu.hpp"
 #include "gz.hpp"
+#include "gz_menu.hpp"
+#include "gz_settings.hpp"
 
-#include <Unknown/UnkStruct_027e0478.hpp>
 #include <Unknown/UnkStruct_02049b18.hpp>
+#include <Unknown/UnkStruct_027e0478.hpp>
 #include <nitro/math.h>
 #include <regs.h>
 #include <string.h>
@@ -35,9 +35,7 @@ static GZCmdItem sCommands[] = {
     {ButtonCombo("Turbo", BTN_R, BTN_B), ExecuteTurbo},
 };
 
-static void ExecuteLevitate() {
-    data_027e0478.mPlayer.mVel.y = FLOAT_TO_Q20(0.334375f);
-}
+static void ExecuteLevitate() { data_027e0478.mPlayer.mVel.y = FLOAT_TO_Q20(0.334375f); }
 
 static void ExecutePause() {
     if (!gGZ.mState.isPaused) {
@@ -47,9 +45,7 @@ static void ExecutePause() {
     }
 }
 
-static void ExecuteFrameAdvance() {
-    gGZ.mState.requestedFrames++;
-}
+static void ExecuteFrameAdvance() { gGZ.mState.requestedFrames++; }
 
 static void ExecutePrevPosition() {
     GZProfile* pProfile = gSettings.GetProfile();
@@ -89,9 +85,7 @@ static void ExecuteVoidOut() {
     }
 }
 
-static void ExecuteTurbo() {
-
-}
+static void ExecuteTurbo() {}
 
 GZCommandManager gCommandManager;
 

@@ -1,17 +1,17 @@
 #pragma once
 
-#include "mem.hpp"
 #include "gz_menu.hpp"
+#include "mem.hpp"
 
-#include <regs.h>
-#include <mem.h>
 #include <Player/TouchControl.hpp>
-#include <nitro/button.h>
-#include <Unknown/UnkStruct_02049b18.hpp>
-#include <Unknown/Common.hpp>
 #include <System/OverlayManager.hpp>
+#include <Unknown/Common.hpp>
+#include <Unknown/UnkStruct_02049b18.hpp>
 #include <Unknown/UnkStruct_02049b74.hpp>
 #include <Unknown/UnkStruct_0204a110.hpp>
+#include <mem.h>
+#include <nitro/button.h>
+#include <regs.h>
 
 #define data_027fffa8 (*(u16*)0x027FFFA8)
 
@@ -23,13 +23,11 @@ struct GZState {
     bool doRNGUpdatesDuringPause; // allow the RNG seed to be updated in `ExecutePause`
     bool isRNGPaused; // stops the RNG seed from updating in the main loop (TODO: entirely stop RNG from updating?)
 
-    GZState() {
-        memset(this, 0, sizeof(GZState));
-    }
+    GZState() { memset(this, 0, sizeof(GZState)); }
 };
 
 class GZ {
-public:
+  public:
     Input mButtons;
     TouchControl* mpTouchControl;
     OverlayIndex prevGameModeOvl;
@@ -47,25 +45,15 @@ public:
         this->mButtons.cur = input;
     }
 
-    bool IsAdventureMode() {
-        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_MainGame;
-    }
+    bool IsAdventureMode() { return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_MainGame; }
 
-    bool IsBattleMode() {
-        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_BattleGame;
-    }
+    bool IsBattleMode() { return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_BattleGame; }
 
-    bool IsFileSelect() {
-        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_MainSelect;
-    }
+    bool IsFileSelect() { return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_MainSelect; }
 
-    bool IsTitleScreen() {
-        return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_Title;
-    }
+    bool IsTitleScreen() { return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_Title; }
 
-    bool IsOnLand() {
-        return gOverlayManager.mLoadedOverlays[OverlaySlot_6] == OverlayIndex_Land;
-    }
+    bool IsOnLand() { return gOverlayManager.mLoadedOverlays[OverlaySlot_6] == OverlayIndex_Land; }
 
     // global init
     void Init();

@@ -5,8 +5,8 @@
 
 #include <Game/Game.hpp>
 #include <System/OverlayManager.hpp>
-#include <types.h>
 #include <mem.h>
+#include <types.h>
 
 extern "C" void func_02030d48(u16 lockID); // CARD_LockBackup
 extern "C" int func_020313b4(u32 type); // CARD_IdentifyBackup
@@ -39,7 +39,7 @@ typedef struct GZProfile {
 }
 
 class GZSettings {
-public:
+  public:
     GZProfileHeader mProfileHeader;
     GZProfile mProfiles[MAX_SAVE_PROFILES];
     u16 lockID;
@@ -50,13 +50,9 @@ public:
     GZSettings();
     ~GZSettings();
 
-    GZProfile* GetProfile() {
-        return &this->mProfiles[this->mProfileHeader.curProfileIndex];
-    }
+    GZProfile* GetProfile() { return &this->mProfiles[this->mProfileHeader.curProfileIndex]; }
 
-    bool IsStartUp() {
-        return gGZ.prevGameModeOvl == OverlayIndex_StartUp;
-    }
+    bool IsStartUp() { return gGZ.prevGameModeOvl == OverlayIndex_StartUp; }
 
     Vec3p* GetPosArray() {
         GZProfile* pProfile = this->GetProfile();

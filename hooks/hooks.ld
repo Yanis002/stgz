@@ -59,8 +59,8 @@ SECTIONS
     }
     __hooks_ctor_end = .;
 
-    /DISCARD/ : { 
-        *(.comment) 
+    /DISCARD/ : {
+        *(.comment)
         *(.ARM.attributes)
     }
 }

@@ -2,11 +2,11 @@
 
 #include "gz_controls.hpp"
 
-#include <mem.h>
-#include <types.h>
-#include <nitro/math.h>
-#include <nitro/button.h>
 #include <Item/ItemManager.hpp>
+#include <mem.h>
+#include <nitro/button.h>
+#include <nitro/math.h>
+#include <types.h>
 
 typedef void (*GZMenuAction)(u32 params);
 struct GZMenu;
@@ -45,9 +45,7 @@ struct GZMenuState {
     Vec2b menuPos;
     s16 successTimer;
 
-    GZMenuState() {
-        memset(this, 0, sizeof(GZMenuState));
-    }
+    GZMenuState() { memset(this, 0, sizeof(GZMenuState)); }
 
     void Init() {
         menuPos.x = 2;
@@ -77,7 +75,7 @@ struct GZMenuControls {
 };
 
 class GZMenuManager {
-public:
+  public:
     GZMenuState mState;
     GZMenu* mpActiveMenu;
     GZMenuControls mControls;
@@ -85,18 +83,14 @@ public:
 
     GZMenuManager();
 
-    bool IsActive() {
-        return this->mState.isOpened;
-    }
+    bool IsActive() { return this->mState.isOpened; }
 
     void Quit() {
         this->StopDraw();
         this->mState.isOpened = false;
     }
 
-    GZMenuItem* GetActiveMenuItem() {
-        return &this->mpActiveMenu->mpItems[this->mState.itemIndex];
-    }
+    GZMenuItem* GetActiveMenuItem() { return &this->mpActiveMenu->mpItems[this->mState.itemIndex]; }
 
     bool IsInventoryMenuActive();
     bool IsAmountsMenuActive();

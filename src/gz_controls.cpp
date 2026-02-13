@@ -53,14 +53,12 @@ bool ButtonCombo::Executed(u16 cur, u16 press) {
         }
 
         return CHECK_BUTTON_COMBO(cur, this->held) != 0;
-    } 
+    }
 
     return CHECK_BUTTON_COMBO(press, this->pressed) != 0;
 }
 
-bool ButtonCombo::Executed(Input* pButtons) {
-    return this->Executed(pButtons->cur, pButtons->press);
-}
+bool ButtonCombo::Executed(Input* pButtons) { return this->Executed(pButtons->cur, pButtons->press); }
 
 const char* ButtonCombo::ButtonToString(u16 button, bool shortNames) {
     switch (button) {

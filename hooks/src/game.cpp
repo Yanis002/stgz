@@ -1,6 +1,6 @@
+#include <Game/Game.hpp>
 #include <System/OverlayManager.hpp>
 #include <System/Random.hpp>
-#include <Game/Game.hpp>
 #include <Unknown/UnkStruct_02049b74.hpp>
 #include <Unknown/UnkStruct_02049bd4.hpp>
 #include <Unknown/UnkStruct_0204a110.hpp>
@@ -27,7 +27,7 @@ extern "C" void func_02028100(int enabled);
 extern Mat3p data_027e02c4;
 
 struct SomeSaveFileStruct {
-    /* 00 */ SaveFile *mpSaveFiles[MAX_SAVE_SLOTS];
+    /* 00 */ SaveFile* mpSaveFiles[MAX_SAVE_SLOTS];
 
     SomeSaveFileStruct(unk32 param1);
     ~SomeSaveFileStruct();
@@ -47,7 +47,7 @@ void StartUpMain::Run() {
                 this->mpSaveFile = local_28.mpSaveFiles[0];
 
                 this->mpCurrentGameMode = this->createCallback();
-                this->createCallback    = NULL;
+                this->createCallback = NULL;
                 this->mpCurrentGameMode->vfunc_08();
                 this->mpSaveFile = NULL;
             }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stddef.h>
 #include <mem.h>
+#include <stddef.h>
 #include <types.h>
 
 #include <Unknown/UnkMemFuncs.h>
@@ -24,29 +24,17 @@ struct HeapHandler {
         HeapSlot* prev;
         HeapSlot* next;
 
-        HeapSlot() {
-            this->Reset();
-        }
+        HeapSlot() { this->Reset(); }
 
-        void* GetStart() {
-            return (void*)((u8*)this + sizeof(HeapSlot));
-        }
+        void* GetStart() { return (void*)((u8*)this + sizeof(HeapSlot)); }
 
-        void SetFree() {
-            this->state = FREE;
-        }
+        void SetFree() { this->state = FREE; }
 
-        void SetUsed() {
-            this->state = USED;
-        }
+        void SetUsed() { this->state = USED; }
 
-        bool IsFree() {
-            return this->state == FREE;
-        }
+        bool IsFree() { return this->state == FREE; }
 
-        void Clear() {
-            memset(this->GetStart(), 0, this->size);
-        }
+        void Clear() { memset(this->GetStart(), 0, this->size); }
 
         void Reset() {
             this->SetFree();
@@ -64,9 +52,7 @@ struct HeapHandler {
         ((HeapSlot*)this->mHeapLo)->SetFree();
     }
 
-    size_t GetHeapSize() {
-        return this->mHeapSize;
-    }
+    size_t GetHeapSize() { return this->mHeapSize; }
 
     HeapSlot* FindSlot(size_t size);
     void* Alloc(size_t size);

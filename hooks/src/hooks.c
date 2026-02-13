@@ -1,6 +1,6 @@
 /**
  * @file: hooks.c
- * 
+ *
  * This file implements the hooks that are replacing vanilla functions so we can run custom code.
  * Make sure to make it as small as possible!
  */
@@ -24,7 +24,8 @@ extern void GZ_Init();
 
 #define nOverlay0 (*(unsigned int*)OVERLAY_0_SLOT_ADDR)
 
-// init hook: replace the `func_ov018_020c48f8` call from `GameModeStartUp::vfunc_0C` so we can load and init the gz overlay
+// init hook: replace the `func_ov018_020c48f8` call from `GameModeStartUp::vfunc_0C` so we can load and init the gz
+// overlay
 void GZ_InitHook(void* ptr) {
     _ZN4Game19func_ov018_020c48f8Ev(ptr);
 

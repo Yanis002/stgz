@@ -4,7 +4,7 @@
 
 // IMPORTANT: this should match `Game` exactly!
 class CustomGame : public Game {
-public:
+  public:
     void Run();
     void ExecutePause();
 };

@@ -1,13 +1,13 @@
 #include "gz_menu.hpp"
+#include "build.hpp"
+#include "gz.hpp"
 #include "gz_commands.hpp"
 #include "gz_settings.hpp"
-#include "gz.hpp"
-#include "build.hpp"
 
-#include <regs.h>
-#include <Unknown/UnkStruct_ov000_020b50c0.hpp>
-#include <Unknown/UnkStruct_027e0ce0.hpp>
 #include <System/OverlayManager.hpp>
+#include <Unknown/UnkStruct_027e0ce0.hpp>
+#include <Unknown/UnkStruct_ov000_020b50c0.hpp>
+#include <regs.h>
 #include <string.h>
 
 /*
@@ -64,7 +64,7 @@ extern "C" void GXS_SetGraphicsMode(int);
 extern "C" void func_0201b180(bool, bool);
 extern "C" unk32 func_020147a8();
 extern "C" void func_0201b278(bool, bool);
-extern "C" void SetBrightColor(void *, int);
+extern "C" void SetBrightColor(void*, int);
 
 static void Quit(u32 params);
 static void Back(u32 params);
@@ -137,7 +137,7 @@ static GZMenuItem sAboutMenuItems[] = {
 };
 
 static GZMenuItem sMainMenuItems[] = {
-    {"Quit", Quit, 0, NULL, false , 0},
+    {"Quit", Quit, 0, NULL, false, 0},
     {"Inventory", NULL, 0, &sInventoryMenu, true, 0},
     {"Collection", NULL, 0, &sCollectionMenu, true, 0},
     {"Settings", NULL, 0, &sSettingsMenu, false, 0},
@@ -154,13 +154,9 @@ GZMenu sSettingsMenu = {sSettingsMenuItems, ARRAY_LEN(sSettingsMenuItems), &sMai
 GZMenu sCommandsMenu = {sCommandsMenuItems, ARRAY_LEN(sCommandsMenuItems), &sMainMenu};
 GZMenu sAboutMenu = {sAboutMenuItems, ARRAY_LEN(sAboutMenuItems), &sMainMenu};
 
-static void Quit(u32 params) {
-    gMenuManager.Quit();
-}
+static void Quit(u32 params) { gMenuManager.Quit(); }
 
-static void Back(u32 params) {
-    gMenuManager.AssignPrevMenu();
-}
+static void Back(u32 params) { gMenuManager.AssignPrevMenu(); }
 
 static void UpdateInventory(u32 params) {
     GZMenuItem* pActiveMenuItem = gMenuManager.GetActiveMenuItem();
@@ -274,25 +270,15 @@ GZMenuManager::GZMenuManager() {
     memset(&data_0204d9d0[1], 0, sizeof(Screen));
 }
 
-bool GZMenuManager::IsInventoryMenuActive() {
-    return this->mpActiveMenu == &sInventoryMenu;
-}
+bool GZMenuManager::IsInventoryMenuActive() { return this->mpActiveMenu == &sInventoryMenu; }
 
-bool GZMenuManager::IsAmountsMenuActive() {
-    return this->mpActiveMenu == &sAmountsMenu;
-}
+bool GZMenuManager::IsAmountsMenuActive() { return this->mpActiveMenu == &sAmountsMenu; }
 
-bool GZMenuManager::IsCommandsMenuActive() {
-    return this->mpActiveMenu == &sCommandsMenu;
-}
+bool GZMenuManager::IsCommandsMenuActive() { return this->mpActiveMenu == &sCommandsMenu; }
 
-bool GZMenuManager::IsSettingsMenuActive() {
-    return this->mpActiveMenu == &sSettingsMenu;
-}
+bool GZMenuManager::IsSettingsMenuActive() { return this->mpActiveMenu == &sSettingsMenu; }
 
-bool GZMenuManager::IsAboutMenuActive() {
-    return this->mpActiveMenu == &sAboutMenu;
-}
+bool GZMenuManager::IsAboutMenuActive() { return this->mpActiveMenu == &sAboutMenu; }
 
 void GZMenuManager::ValidateNewIncrement() {
     GZMenuItem* pActiveMenuItem = this->GetActiveMenuItem();
@@ -351,7 +337,7 @@ void GZMenuManager::ValidateNewIncrement() {
     }
 }
 
-void GZMenuManager::AssignPrevMenu()  {
+void GZMenuManager::AssignPrevMenu() {
     if (this->mpActiveMenu->mPrev != NULL) {
         this->mpActiveMenu = this->mpActiveMenu->mPrev;
         this->mState.itemIndex = 0;
@@ -418,7 +404,8 @@ void GZMenuManager::Update() {
         // handle confirmation stuff
 
         if (!pActiveMenuItem->needSaveFile || (pActiveMenuItem->needSaveFile && gGZ.IsAdventureMode())) {
-            if ((!this->IsAmountsMenuActive() || this->mState.itemIndex == 0) && pActiveMenuItem->mActionCallback != NULL) {
+            if ((!this->IsAmountsMenuActive() || this->mState.itemIndex == 0) &&
+                pActiveMenuItem->mActionCallback != NULL) {
                 pActiveMenuItem->mActionCallback(pActiveMenuItem->params);
 
                 if (this->IsInventoryMenuActive()) {
@@ -456,8 +443,8 @@ void GZMenuManager::SetAmountString(s16 index, Vec2b* pPos, bool selected) {
     u8 maxBombs = data_027e0ce0->mUnk_28->func_ov000_020a8748();
 
     static const char* szValueToPotion[] = {
-        "None",          // PotionType_None
-        "Red Potion",    // PotionType_Red
+        "None", // PotionType_None
+        "Red Potion", // PotionType_Red
         "Purple Potion", // PotionType_Purple
         "Yellow Potion", // PotionType_Yellow
     };
@@ -489,7 +476,8 @@ void GZMenuManager::SetAmountString(s16 index, Vec2b* pPos, bool selected) {
             DisplayDebugTextF(0, pPos, 0, selected, " (%d/%d)", data_027e0ce0->mUnk_28->mKeyAmount, MAX_KEYS);
             break;
         case InventoryAmountType_LightTears:
-            DisplayDebugTextF(0, pPos, 0, selected, " (%d/%d)", data_027e0ce0->mUnk_28->mTearsAmount, MAX_TEARS_OF_LIGHT);
+            DisplayDebugTextF(0, pPos, 0, selected, " (%d/%d)", data_027e0ce0->mUnk_28->mTearsAmount,
+                              MAX_TEARS_OF_LIGHT);
             break;
         default:
             break;
@@ -529,7 +517,7 @@ void GZMenuManager::SetupScreen() {
     if (this->IsCommandsMenuActive()) {
         gCommandManager.Draw(&elemPos);
     }
-    
+
     // send the arrow to the buffer
     Vec2b arrowPos = this->mState.menuPos;
     arrowPos.x--;
@@ -585,8 +573,8 @@ void GZMenuManager::StartDraw() {
     func_02023770(2); // no corruption when commented but no text
     GX_SetGraphicsMode(1, 0, 0);
     GXS_SetGraphicsMode(0);
-    
-    REG_DISPCNT     = ((REG_DISPCNT & ~0x1F00) | 0x100);
+
+    REG_DISPCNT = ((REG_DISPCNT & ~0x1F00) | 0x100);
     REG_DISPCNT_SUB = (REG_DISPCNT_SUB & ~0x1F00) | 0x100;
     func_0201b180(true, true); // loads the font (participate in the corruption also?)
 }
@@ -594,8 +582,8 @@ void GZMenuManager::StartDraw() {
 void GZMenuManager::Draw() {
     func_0201b278(true, true); // copy screen
     func_020131ec();
-    SetBrightColor((void *) &REG_MASTER_BRIGHT, 0);
-    SetBrightColor((void *) &REG_MASTER_BRIGHT_SUB, 0);
+    SetBrightColor((void*)&REG_MASTER_BRIGHT, 0);
+    SetBrightColor((void*)&REG_MASTER_BRIGHT_SUB, 0);
 
     if (func_020147a8() != 0) {
         data_ov000_020b50c0.func_ov000_02069f58();
@@ -619,4 +607,3 @@ void GZMenuManager::StopDraw() {
     REG_DISPCNT_SUB = prevDispCnt_Sub;
     REG_VRAM_CNT_B = prevVRAM_CNT_B;
 }
-

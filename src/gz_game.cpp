@@ -1,8 +1,8 @@
 #include "gz_game.hpp"
 #include "gz.hpp"
-#include "gz_settings.hpp"
-#include "gz_menu.hpp"
 #include "gz_commands.hpp"
+#include "gz_menu.hpp"
+#include "gz_settings.hpp"
 
 #include <Game/Game.hpp>
 #include <System/OverlayManager.hpp>
