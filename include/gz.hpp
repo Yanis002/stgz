@@ -13,6 +13,8 @@
 #include <Unknown/UnkStruct_02049b74.hpp>
 #include <Unknown/UnkStruct_0204a110.hpp>
 
+#define data_027fffa8 (*(u16*)0x027FFFA8)
+
 class GameGZ;
 
 struct GZState {
@@ -39,7 +41,7 @@ public:
     void UpdateInputs() {
         // the game has functions but it's better to do it manually to make sure
         // we have the right values when we execute stuff later
-        u16 input = ~REG_KEYINPUT & 0x03FF;
+        u16 input = ((REG_KEYINPUT | data_027fffa8) ^ 0x2FFF) & 0x2FFF;
         this->mButtons.press = input & ~this->mButtons.cur;
         this->mButtons.release = ~input & this->mButtons.cur;
         this->mButtons.cur = input;
@@ -59,6 +61,10 @@ public:
 
     bool IsTitleScreen() {
         return gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_Title;
+    }
+
+    bool IsOnLand() {
+        return gOverlayManager.mLoadedOverlays[OverlaySlot_6] == OverlayIndex_Land;
     }
 
     // global init

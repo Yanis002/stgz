@@ -1,12 +1,14 @@
 #pragma once
 
 #include "gz_controls.hpp"
+#include "gz_menu.hpp"
+
+#include <nitro/math.h>
 
 typedef void (*GZCmdInit)(void);
 typedef void (*GZCmdAction)(void);
 
 struct GZCmdItem {
-    const char* name;
     ButtonCombo btnCombo;
     GZCmdAction actionCallback;
 };
@@ -19,6 +21,7 @@ public:
     GZCommandManager();
 
     void Update();
+    void Draw(Vec2b* pPos);
 };
 
 extern GZCommandManager gCommandManager;

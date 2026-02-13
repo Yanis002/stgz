@@ -1,4 +1,5 @@
 #include "gz_commands.hpp"
+#include "gz_settings.hpp"
 #include "gz_menu.hpp"
 #include "gz.hpp"
 
@@ -6,16 +7,32 @@
 #include <Unknown/UnkStruct_02049b18.hpp>
 #include <nitro/math.h>
 #include <regs.h>
+#include <string.h>
+
+extern "C" void DisplayDebugText(int, void*, int, int, const char*);
+extern "C" void DisplayDebugTextF(int, void*, int, int, const char*, ...);
 
 static void ExecuteLevitate();
 static void ExecutePause();
 static void ExecuteFrameAdvance();
+static void ExecutePrevPosition();
+static void ExecuteNextPosition();
+static void ExecuteSavePosition();
+static void ExecuteLoadPosition();
+static void ExecuteVoidOut();
+static void ExecuteTurbo();
 
 // commands with default button combos
 static GZCmdItem sCommands[] = {
-    {"Levitate", ButtonCombo(BTN_X, BTN_NONE), ExecuteLevitate},
-    {"Pause/Unpause", ButtonCombo(BTN_NONE, BTN_DDOWN), ExecutePause},
-    {"Frame Advance", ButtonCombo(BTN_NONE, BTN_DUP), ExecuteFrameAdvance},
+    {ButtonCombo("Levitate", BTN_X, BTN_NONE), ExecuteLevitate},
+    {ButtonCombo("Pause/Unpause", BTN_NONE, BTN_DDOWN), ExecutePause},
+    {ButtonCombo("Frame Advance", BTN_NONE, BTN_DUP), ExecuteFrameAdvance},
+    {ButtonCombo("Prev Position", BTN_R, BTN_DLEFT), ExecutePrevPosition},
+    {ButtonCombo("Next Position", BTN_R, BTN_DRIGHT), ExecuteNextPosition},
+    {ButtonCombo("Save Position", BTN_R, BTN_X), ExecuteSavePosition},
+    {ButtonCombo("Load Position", BTN_R, BTN_A), ExecuteLoadPosition},
+    {ButtonCombo("Void Out", BTN_R, BTN_Y), ExecuteVoidOut},
+    {ButtonCombo("Turbo", BTN_R, BTN_B), ExecuteTurbo},
 };
 
 static void ExecuteLevitate() {
@@ -32,6 +49,44 @@ static void ExecutePause() {
 
 static void ExecuteFrameAdvance() {
     gGZ.mState.requestedFrames++;
+}
+
+static void ExecutePrevPosition() {
+    gSettings.mPositionIndex--;
+
+    if (gSettings.mPositionIndex < 0) {
+        gSettings.mPositionIndex = 0;
+    }
+}
+
+static void ExecuteNextPosition() {
+    Vec3p* pPosArray = gSettings.GetPosArray();
+
+    gSettings.mPositionIndex++;
+
+    if (gSettings.mPositionIndex > MAX_POS_SLOTS) {
+        gSettings.mPositionIndex = MAX_POS_SLOTS;
+    }
+}
+
+static void ExecuteSavePosition() {
+    Vec3p* pPosArray = gSettings.GetPosArray();
+    pPosArray[gSettings.mPositionIndex] = data_027e0478.mPlayer.mPos;
+}
+
+static void ExecuteLoadPosition() {
+    Vec3p* pPosArray = gSettings.GetPosArray();
+    data_027e0478.mPlayer.mPos = pPosArray[gSettings.mPositionIndex];
+}
+
+static void ExecuteVoidOut() {
+    if (gGZ.IsOnLand()) {
+        data_027e0478.mPlayer.mPos.y = FLOAT_TO_Q20(-4000.0f);
+    }
+}
+
+static void ExecuteTurbo() {
+
 }
 
 GZCommandManager gCommandManager;
@@ -54,5 +109,18 @@ void GZCommandManager::Update() {
                 pCmd->actionCallback();
             }
         }
+    }
+}
+
+void GZCommandManager::Draw(Vec2b* pPos) {
+    Vec2b elemPos = *pPos;
+
+    for (s16 i = 0; i < ARRAY_LEN(sCommands); i++) {
+        GZCmdItem* pCmd = &this->mpCommands[i];
+        bool selected = i + 1 == gMenuManager.mState.itemIndex;
+
+        pCmd->btnCombo.SetComboString();
+        DisplayDebugText(0, &elemPos, 0, selected, pCmd->btnCombo.fullName);
+        elemPos.y++;
     }
 }

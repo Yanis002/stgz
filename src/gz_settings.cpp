@@ -11,6 +11,13 @@ GZSettings::GZSettings() {
     this->mSaveIndex = 0;
     this->mFasterTitleScreen = true;
     this->mSkipTitleScreen = true;
+    
+    for (int i = 0; i < MAX_POS_SLOTS; i++) {
+        this->mLandPosSlots[i] = {0, 0, 0};
+        this->mTrainPosSlots[i] = {0, 0, 0};
+    }
+
+    this->mPositionIndex = 0;
 }
 
 GZSettings::~GZSettings() {

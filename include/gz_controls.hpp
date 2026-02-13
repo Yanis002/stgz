@@ -5,42 +5,23 @@
 #define BTN_NONE 0
 
 struct ButtonCombo {
+    const char* name;
     u16 held;
     u16 pressed;
+    char fullName[40]; // internal use, we need a buffer to host the string for the commands menu
 
-    ButtonCombo() {
-        this->Assign(BTN_NONE, BTN_NONE);
-    }
-
-    ButtonCombo(u16 held, u16 pressed) {
-        this->Assign(held, pressed);
-    }
+    ButtonCombo();
+    ButtonCombo(u16 held, u16 pressed);
+    ButtonCombo(const char* name, u16 held, u16 pressed);
 
     // assign new button combo
-    void Assign(u16 held, u16 pressed) {
-        this->held = held;
-        this->pressed = pressed;
-    }
-
-    void Assign(u16 pressed) {
-        this->held = BTN_NONE;
-        this->pressed = pressed;
-    }
+    void Assign(u16 held, u16 pressed);
+    void Assign(u16 pressed);
 
     // checks if the button combo has been performed
-    bool Executed(u16 cur, u16 press) {
-        if (this->held != BTN_NONE) {
-            if (this->pressed != BTN_NONE) {
-                return CHECK_BUTTON_COMBO(cur, this->held) && CHECK_BUTTON_COMBO(press, this->pressed);
-            }
+    bool Executed(u16 cur, u16 press);
+    bool Executed(Input* pButtons);
 
-            return CHECK_BUTTON_COMBO(cur, this->held) != 0;
-        } 
-
-        return CHECK_BUTTON_COMBO(press, this->pressed) != 0;
-    }
-
-    bool Executed(Input* pButtons) {
-        return this->Executed(pButtons->cur, pButtons->press);
-    }
+    const char* ButtonToString(u16 button, bool shortNames);
+    void SetComboString();
 };

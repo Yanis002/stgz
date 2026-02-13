@@ -99,6 +99,7 @@ public:
 
     bool IsInventoryMenuActive();
     bool IsAmountsMenuActive();
+    bool IsCommandsMenuActive();
     void SetAmountString(s16 index, Vec2b* pPos, bool selected);
     void ValidateNewIncrement();
     void AssignPrevMenu();

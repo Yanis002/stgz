@@ -1,4 +1,5 @@
 #include "gz_menu.hpp"
+#include "gz_commands.hpp"
 #include "gz.hpp"
 #include "build.hpp"
 
@@ -70,6 +71,7 @@ extern GZMenu sInventoryMenu;
 extern GZMenu sAmountsMenu;
 extern GZMenu sCollectionMenu;
 extern GZMenu sSettingsMenu;
+extern GZMenu sCommandsMenu;
 extern GZMenu sAboutMenu;
 
 static GZMenuItem sInventoryMenuItems[] = {
@@ -111,6 +113,10 @@ static GZMenuItem sSettingsMenuItems[] = {
     {"Back", Back, 0, NULL, false, 0},
 };
 
+static GZMenuItem sCommandsMenuItems[] = {
+    {"Back", Back, 0, NULL, false, 0},
+};
+
 static GZMenuItem sAboutMenuItems[] = {
     {"Back", Back, 0, NULL, false, 0},
 };
@@ -120,6 +126,7 @@ static GZMenuItem sMainMenuItems[] = {
     {"Inventory", NULL, 0, &sInventoryMenu, true, 0},
     {"Collection", NULL, 0, &sCollectionMenu, true, 0},
     {"Settings", NULL, 0, &sSettingsMenu, false, 0},
+    {"Commands", NULL, 0, &sCommandsMenu, false, 0},
     {"About", NULL, 0, &sAboutMenu, false, 0},
 };
 
@@ -129,6 +136,7 @@ GZMenu sInventoryMenu = {sInventoryMenuItems, ARRAY_LEN(sInventoryMenuItems), &s
 GZMenu sAmountsMenu = {sAmountsMenuItems, ARRAY_LEN(sAmountsMenuItems), &sInventoryMenu};
 GZMenu sCollectionMenu = {sCollectionMenuItems, ARRAY_LEN(sCollectionMenuItems), &sMainMenu};
 GZMenu sSettingsMenu = {sSettingsMenuItems, ARRAY_LEN(sSettingsMenuItems), &sMainMenu};
+GZMenu sCommandsMenu = {sCommandsMenuItems, ARRAY_LEN(sCommandsMenuItems), &sMainMenu};
 GZMenu sAboutMenu = {sAboutMenuItems, ARRAY_LEN(sAboutMenuItems), &sMainMenu};
 
 static void Quit(u32 params) {
@@ -229,6 +237,10 @@ bool GZMenuManager::IsInventoryMenuActive() {
 
 bool GZMenuManager::IsAmountsMenuActive() {
     return this->mpActiveMenu == &sAmountsMenu;
+}
+
+bool GZMenuManager::IsCommandsMenuActive() {
+    return this->mpActiveMenu == &sCommandsMenu;
 }
 
 void GZMenuManager::ValidateNewIncrement() {
@@ -457,6 +469,10 @@ void GZMenuManager::SetupScreen() {
         elemPos.y++;
     }
 
+    if (this->IsCommandsMenuActive()) {
+        gCommandManager.Draw(&elemPos);
+    }
+    
     // send the arrow to the buffer
     Vec2b arrowPos = this->mState.menuPos;
     arrowPos.x--;
