@@ -23,5 +23,5 @@ void GZ::OnGameModeInit() {
 
 void GZ::OnGameModeUpdate() {
     gCommandManager.Update();
-    gSettings.ProcessTitleScreen();
+    gSettings.Update();
 }

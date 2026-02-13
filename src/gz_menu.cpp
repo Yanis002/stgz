@@ -1,5 +1,6 @@
 #include "gz_menu.hpp"
 #include "gz_commands.hpp"
+#include "gz_settings.hpp"
 #include "gz.hpp"
 #include "build.hpp"
 
@@ -38,7 +39,12 @@ Layout:
         - AncientShield
         - PanFlute
     - Settings
-        - (TBD)
+        - Prev Profile
+        - Next Profile
+        - Load Default Profile
+        - Save Settings
+        - Current Profile
+        - Success or Error Code (conditional)
     - About
 */
 
@@ -64,7 +70,12 @@ static void Quit(u32 params);
 static void Back(u32 params);
 static void UpdateInventory(u32 params);
 static void UpdateAmounts(u32 params);
-static void UpdateSettings(u32 params);
+
+// settings menu
+static void PrevProfile(u32 params);
+static void NextProfile(u32 params);
+static void LoadDefaultProfile(u32 params);
+static void SaveSettings(u32 params);
 
 extern GZMenu sMainMenu;
 extern GZMenu sInventoryMenu;
@@ -111,6 +122,10 @@ static GZMenuItem sCollectionMenuItems[] = {
 
 static GZMenuItem sSettingsMenuItems[] = {
     {"Back", Back, 0, NULL, false, 0},
+    {"Prev Profile", PrevProfile, 0, NULL, false, 0},
+    {"Next Profile", NextProfile, 0, NULL, false, 0},
+    {"Load Default Profile", LoadDefaultProfile, 0, NULL, false, 0},
+    {"Save Settings", SaveSettings, 0, NULL, false, 0},
 };
 
 static GZMenuItem sCommandsMenuItems[] = {
@@ -213,8 +228,36 @@ static void UpdateAmounts(u32 params) {
     }
 }
 
-static void UpdateSettings(u32 params) {
+static void PrevProfile(u32 params) {
+    if (gSettings.mProfileHeader.curProfileIndex - 1 > 0) {
+        gSettings.mProfileHeader.curProfileIndex--;
+    } else {
+        gSettings.mProfileHeader.curProfileIndex = 0;
+    }
 
+    gMenuManager.mState.requestRedraw = true;
+}
+
+static void NextProfile(u32 params) {
+    gSettings.mProfileHeader.curProfileIndex++;
+
+    if (gSettings.mProfileHeader.curProfileIndex >= ARRAY_LEN(gSettings.mProfiles)) {
+        gSettings.mProfileHeader.curProfileIndex = ARRAY_LEN(gSettings.mProfiles) - 1;
+    }
+
+    gMenuManager.mState.requestRedraw = true;
+}
+
+static void LoadDefaultProfile(u32 params) {
+    gSettings.LoadDefaultProfile();
+    gMenuManager.mState.successTimer = 90;
+    gMenuManager.mState.requestRedraw = true;
+}
+
+static void SaveSettings(u32 params) {
+    gSettings.WriteSave();
+    gMenuManager.mState.successTimer = 90;
+    gMenuManager.mState.requestRedraw = true;
 }
 
 static u32 prevDispCnt;
@@ -241,6 +284,14 @@ bool GZMenuManager::IsAmountsMenuActive() {
 
 bool GZMenuManager::IsCommandsMenuActive() {
     return this->mpActiveMenu == &sCommandsMenu;
+}
+
+bool GZMenuManager::IsSettingsMenuActive() {
+    return this->mpActiveMenu == &sSettingsMenu;
+}
+
+bool GZMenuManager::IsAboutMenuActive() {
+    return this->mpActiveMenu == &sAboutMenu;
 }
 
 void GZMenuManager::ValidateNewIncrement() {
@@ -386,6 +437,12 @@ void GZMenuManager::Update() {
         this->AssignPrevMenu();
     }
 
+    if (this->mState.successTimer > 0) {
+        // handle settings stuff
+        this->mState.successTimer--;
+        this->mState.requestRedraw = true;
+    }
+
     if (this->mState.requestRedraw) {
         // redraw the menu if necessary
         this->mState.requestRedraw = false;
@@ -480,8 +537,20 @@ void GZMenuManager::SetupScreen() {
     DisplayDebugText(0, &arrowPos, 0, 1, ">");
     arrowPos.y++;
 
-    // special handling for the about screen
-    if (this->mpActiveMenu == &sAboutMenu) {
+    if (this->IsSettingsMenuActive()) {
+        // special handling for the settings screen
+        Vec2b settingsPos = this->mState.menuPos;
+        settingsPos.y = elemPos.y + 1;
+        DisplayDebugTextF(0, &settingsPos, 0, 0, "Current Profile: %d", gSettings.mProfileHeader.curProfileIndex + 1);
+
+        settingsPos.y += 15;
+        if (gSettings.error) {
+            DisplayDebugTextF(0, &settingsPos, 0, 1, "Error detected: 0x%X", gSettings.errorCode);
+        } else if (this->mState.successTimer > 0) {
+            DisplayDebugTextF(0, &settingsPos, 0, 0, "Success!", gSettings.errorCode);
+        }
+    } else if (this->IsAboutMenuActive()) {
+        // special handling for the about screen
         Vec2b aboutPos = this->mState.menuPos;
         aboutPos.y = elemPos.y + 1; // start wherever the item list ended
         DisplayDebugTextF(0, &aboutPos, 0, 0, "Code Version: %s", gBuildGitVersion);

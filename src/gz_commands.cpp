@@ -52,31 +52,35 @@ static void ExecuteFrameAdvance() {
 }
 
 static void ExecutePrevPosition() {
-    gSettings.mPositionIndex--;
+    GZProfile* pProfile = gSettings.GetProfile();
 
-    if (gSettings.mPositionIndex < 0) {
-        gSettings.mPositionIndex = 0;
+    pProfile->mPositionIndex--;
+
+    if (pProfile->mPositionIndex < 0) {
+        pProfile->mPositionIndex = 0;
     }
 }
 
 static void ExecuteNextPosition() {
-    Vec3p* pPosArray = gSettings.GetPosArray();
+    GZProfile* pProfile = gSettings.GetProfile();
 
-    gSettings.mPositionIndex++;
+    pProfile->mPositionIndex++;
 
-    if (gSettings.mPositionIndex > MAX_POS_SLOTS) {
-        gSettings.mPositionIndex = MAX_POS_SLOTS;
+    if (pProfile->mPositionIndex > MAX_POS_SLOTS) {
+        pProfile->mPositionIndex = MAX_POS_SLOTS;
     }
 }
 
 static void ExecuteSavePosition() {
+    GZProfile* pProfile = gSettings.GetProfile();
     Vec3p* pPosArray = gSettings.GetPosArray();
-    pPosArray[gSettings.mPositionIndex] = data_027e0478.mPlayer.mPos;
+    pPosArray[pProfile->mPositionIndex] = data_027e0478.mPlayer.mPos;
 }
 
 static void ExecuteLoadPosition() {
+    GZProfile* pProfile = gSettings.GetProfile();
     Vec3p* pPosArray = gSettings.GetPosArray();
-    data_027e0478.mPlayer.mPos = pPosArray[gSettings.mPositionIndex];
+    data_027e0478.mPlayer.mPos = pPosArray[pProfile->mPositionIndex];
 }
 
 static void ExecuteVoidOut() {

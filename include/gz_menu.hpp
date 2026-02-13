@@ -43,6 +43,7 @@ struct GZMenuState {
     bool requestRedraw;
     s16 itemIndex;
     Vec2b menuPos;
+    s16 successTimer;
 
     GZMenuState() {
         memset(this, 0, sizeof(GZMenuState));
@@ -100,6 +101,9 @@ public:
     bool IsInventoryMenuActive();
     bool IsAmountsMenuActive();
     bool IsCommandsMenuActive();
+    bool IsSettingsMenuActive();
+    bool IsAboutMenuActive();
+
     void SetAmountString(s16 index, Vec2b* pPos, bool selected);
     void ValidateNewIncrement();
     void AssignPrevMenu();
