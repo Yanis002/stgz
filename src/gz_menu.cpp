@@ -4,7 +4,10 @@
 #include "gz_commands.hpp"
 #include "gz_settings.hpp"
 
+#include <Game/GameModeManager.hpp>
+#include <MainGame/MainGame.hpp>
 #include <System/OverlayManager.hpp>
+#include <Unknown/UnkStruct_027e09a4.hpp>
 #include <Unknown/UnkStruct_027e0ce0.hpp>
 #include <Unknown/UnkStruct_ov000_020b50c0.hpp>
 #include <regs.h>
@@ -48,9 +51,19 @@ Layout:
     - About
 */
 
+/*
+TODO LIST:
+- OBJ toggle (~0x1400)
+- reimplement about menu and back/quit
+*/
+
 struct Screen {
-    u8 unk_00[0x0C];
-    u8 data[0x600];
+    /* 00 */ u16 width;
+    /* 02 */ u16 height;
+    /* 04 */ u16 mUnk_04;
+    /* 06 */ u16 mUnk_06; // thing passed to func_0200a4a8
+    /* 08 */ u32 mUnk_08;
+    /* 0C */ u8 data[0x600];
 };
 extern Screen data_0204d9d0[2];
 
@@ -58,7 +71,6 @@ extern "C" void DisplayDebugText(int, void*, int, int, const char*);
 extern "C" void DisplayDebugTextF(int, void*, int, int, const char*, ...);
 extern "C" void DC_FlushAll();
 extern "C" void func_020131ec();
-extern "C" void func_02023770(int);
 extern "C" void GX_SetGraphicsMode(int, int, int);
 extern "C" void GXS_SetGraphicsMode(int);
 extern "C" void func_0201b180(bool, bool);
@@ -82,77 +94,62 @@ extern GZMenu sInventoryMenu;
 extern GZMenu sAmountsMenu;
 extern GZMenu sCollectionMenu;
 extern GZMenu sSettingsMenu;
-extern GZMenu sCommandsMenu;
 extern GZMenu sAboutMenu;
 
 static GZMenuItem sInventoryMenuItems[] = {
-    {"Back", Back, 0, NULL, false, 0},
-    {"Whirlwind", UpdateInventory, ItemFlag_Whirlwind, NULL, true, 0},
-    {"Boomerang", UpdateInventory, ItemFlag_Boomerang, NULL, true, 0},
-    {"Whip", UpdateInventory, ItemFlag_Whip, NULL, true, 0},
-    {"Bow", UpdateInventory, ItemFlag_Bow, NULL, true, 0},
-    {"Bombs", UpdateInventory, ItemFlag_Bombs, NULL, true, 0},
-    {"SandRod", UpdateInventory, ItemFlag_SandRod, NULL, true, 0},
-    {"Amounts", NULL, 0, &sAmountsMenu, true, 0},
+    {"Whirlwind", UpdateInventory, ItemFlag_Whirlwind, NULL, 0},
+    {"Boomerang", UpdateInventory, ItemFlag_Boomerang, NULL, 0},
+    {"Whip", UpdateInventory, ItemFlag_Whip, NULL, 0},
+    {"Bow", UpdateInventory, ItemFlag_Bow, NULL, 0},
+    {"Bombs", UpdateInventory, ItemFlag_Bombs, NULL, 0},
+    {"SandRod", UpdateInventory, ItemFlag_SandRod, NULL, 0},
+    {"Amounts", NULL, 0, &sAmountsMenu, 0},
 };
 
 static GZMenuItem sAmountsMenuItems[] = {
-    {"Back", Back, 0, NULL, false, 0},
-    {"Bow", UpdateAmounts, InventoryAmountType_Bow, NULL, true, 0},
-    {"Bombs", UpdateAmounts, InventoryAmountType_Bombs, NULL, true, 0},
-    {"Quiver Capacity", UpdateAmounts, InventoryAmountType_QuiverCapacity, NULL, true, 0},
-    {"Bomb Bag Capacity", UpdateAmounts, InventoryAmountType_BombCapacity, NULL, true, 0},
-    {"Potion 1", UpdateAmounts, InventoryAmountType_Potion1, NULL, true, 0},
-    {"Potion 2", UpdateAmounts, InventoryAmountType_Potion2, NULL, true, 0},
-    {"Small Keys", UpdateAmounts, InventoryAmountType_SmallKeys, NULL, true, 0},
-    {"Light Tears", UpdateAmounts, InventoryAmountType_LightTears, NULL, true, 0},
+    {"Bow", UpdateAmounts, InventoryAmountType_Bow, NULL, 0},
+    {"Bombs", UpdateAmounts, InventoryAmountType_Bombs, NULL, 0},
+    {"Quiver Capacity", UpdateAmounts, InventoryAmountType_QuiverCapacity, NULL, 0},
+    {"Bomb Bag Capacity", UpdateAmounts, InventoryAmountType_BombCapacity, NULL, 0},
+    {"Potion 1", UpdateAmounts, InventoryAmountType_Potion1, NULL, 0},
+    {"Potion 2", UpdateAmounts, InventoryAmountType_Potion2, NULL, 0},
+    {"Small Keys", UpdateAmounts, InventoryAmountType_SmallKeys, NULL, 0},
+    {"Light Tears", UpdateAmounts, InventoryAmountType_LightTears, NULL, 0},
 };
 
 static GZMenuItem sCollectionMenuItems[] = {
-    {"Back", Back, 0, NULL, false, 0},
-    {"Shield", UpdateInventory, ItemFlag_Shield, NULL, true, 0},
-    {"Sword", UpdateInventory, ItemFlag_Sword, NULL, true, 0},
-    {"LokomoSword", UpdateInventory, ItemFlag_LokomoSword, NULL, true, 0},
-    {"RecruitUniform", UpdateInventory, ItemFlag_RecruitUniform, NULL, true, 0},
-    {"ScrollBeam", UpdateInventory, ItemFlag_ScrollBeam, NULL, true, 0},
-    {"ScrollSpinAttack", UpdateInventory, ItemFlag_ScrollSpinAttack, NULL, true, 0},
-    {"AncientShield", UpdateInventory, ItemFlag_AncientShield, NULL, true, 0},
-    {"PanFlute", UpdateInventory, ItemFlag_PanFlute, NULL, true, 0},
+    {"Shield", UpdateInventory, ItemFlag_Shield, NULL, 0},
+    {"Sword", UpdateInventory, ItemFlag_Sword, NULL, 0},
+    {"LokomoSword", UpdateInventory, ItemFlag_LokomoSword, NULL, 0},
+    {"RecruitUniform", UpdateInventory, ItemFlag_RecruitUniform, NULL, 0},
+    {"ScrollBeam", UpdateInventory, ItemFlag_ScrollBeam, NULL, 0},
+    {"ScrollSpinAttack", UpdateInventory, ItemFlag_ScrollSpinAttack, NULL, 0},
+    {"AncientShield", UpdateInventory, ItemFlag_AncientShield, NULL, 0},
+    {"PanFlute", UpdateInventory, ItemFlag_PanFlute, NULL, 0},
 };
 
 static GZMenuItem sSettingsMenuItems[] = {
-    {"Back", Back, 0, NULL, false, 0},
-    {"Prev Profile", PrevProfile, 0, NULL, false, 0},
-    {"Next Profile", NextProfile, 0, NULL, false, 0},
-    {"Load Default Profile", LoadDefaultProfile, 0, NULL, false, 0},
-    {"Save Settings", SaveSettings, 0, NULL, false, 0},
-};
-
-static GZMenuItem sCommandsMenuItems[] = {
-    {"Back", Back, 0, NULL, false, 0},
-};
-
-static GZMenuItem sAboutMenuItems[] = {
-    {"Back", Back, 0, NULL, false, 0},
+    {"Prev Profile", PrevProfile, 0, NULL, 0},
+    {"Next Profile", NextProfile, 0, NULL, 0},
+    {"Load Default Profile", LoadDefaultProfile, 0, NULL, 0},
+    {"Save Settings", SaveSettings, 0, NULL, 0},
 };
 
 static GZMenuItem sMainMenuItems[] = {
-    {"Quit", Quit, 0, NULL, false, 0},
-    {"Inventory", NULL, 0, &sInventoryMenu, true, 0},
-    {"Collection", NULL, 0, &sCollectionMenu, true, 0},
-    {"Settings", NULL, 0, &sSettingsMenu, false, 0},
-    {"Commands", NULL, 0, &sCommandsMenu, false, 0},
-    {"About", NULL, 0, &sAboutMenu, false, 0},
+    {"Inventory", NULL, 0, &sInventoryMenu, 0},
+    {"Collection", NULL, 0, &sCollectionMenu, 0},
+    {"Settings", NULL, 0, &sSettingsMenu, 0},
+    {"Commands", NULL, 0, &gCommandManager.mMenu, 0},
 };
 
 // pointer to the item list, number of items, pointer to the previous menu
-GZMenu sMainMenu = {sMainMenuItems, ARRAY_LEN(sMainMenuItems), NULL};
-GZMenu sInventoryMenu = {sInventoryMenuItems, ARRAY_LEN(sInventoryMenuItems), &sMainMenu};
-GZMenu sAmountsMenu = {sAmountsMenuItems, ARRAY_LEN(sAmountsMenuItems), &sInventoryMenu};
-GZMenu sCollectionMenu = {sCollectionMenuItems, ARRAY_LEN(sCollectionMenuItems), &sMainMenu};
-GZMenu sSettingsMenu = {sSettingsMenuItems, ARRAY_LEN(sSettingsMenuItems), &sMainMenu};
-GZMenu sCommandsMenu = {sCommandsMenuItems, ARRAY_LEN(sCommandsMenuItems), &sMainMenu};
-GZMenu sAboutMenu = {sAboutMenuItems, ARRAY_LEN(sAboutMenuItems), &sMainMenu};
+GZMenu sMainMenu = {sMainMenuItems, ARRAY_LEN(sMainMenuItems), false, 0};
+GZMenu sInventoryMenu = {sInventoryMenuItems, ARRAY_LEN(sInventoryMenuItems), true, 0};
+GZMenu sAmountsMenu = {sAmountsMenuItems, ARRAY_LEN(sAmountsMenuItems), true, 0};
+GZMenu sCollectionMenu = {sCollectionMenuItems, ARRAY_LEN(sCollectionMenuItems), true, 0};
+GZMenu sSettingsMenu = {sSettingsMenuItems, ARRAY_LEN(sSettingsMenuItems), false, 0};
+// GZMenu sCommandsMenu = {sCommandsMenuItems, ARRAY_LEN(sCommandsMenuItems), 0};
+// GZMenu sAboutMenu = {sAboutMenuItems, ARRAY_LEN(sAboutMenuItems), 0};
 
 static void Quit(u32 params) { gMenuManager.Quit(); }
 
@@ -256,9 +253,7 @@ static void SaveSettings(u32 params) {
     gMenuManager.mState.requestRedraw = true;
 }
 
-static u32 prevDispCnt;
 static u32 prevDispCnt_Sub;
-static u8 prevVRAM_CNT_B;
 
 GZMenuManager gMenuManager;
 
@@ -266,19 +261,18 @@ GZMenuManager::GZMenuManager() {
     this->mState.Init();
     this->mpActiveMenu = &sMainMenu;
     this->mpButtons = &gGZ.mButtons;
-    memset(&data_0204d9d0[0], 0, sizeof(Screen));
-    memset(&data_0204d9d0[1], 0, sizeof(Screen));
+    memset(&data_0204d9d0[DRAW_TO_TOP_SCREEN], 0, sizeof(Screen));
 }
 
 bool GZMenuManager::IsInventoryMenuActive() { return this->mpActiveMenu == &sInventoryMenu; }
 
 bool GZMenuManager::IsAmountsMenuActive() { return this->mpActiveMenu == &sAmountsMenu; }
 
-bool GZMenuManager::IsCommandsMenuActive() { return this->mpActiveMenu == &sCommandsMenu; }
+bool GZMenuManager::IsCommandsMenuActive() { return this->mpActiveMenu == &gCommandManager.mMenu; }
 
 bool GZMenuManager::IsSettingsMenuActive() { return this->mpActiveMenu == &sSettingsMenu; }
 
-bool GZMenuManager::IsAboutMenuActive() { return this->mpActiveMenu == &sAboutMenu; }
+bool GZMenuManager::IsAboutMenuActive() { return false; } // this->mpActiveMenu == &sAboutMenu; }
 
 void GZMenuManager::ValidateNewIncrement() {
     GZMenuItem* pActiveMenuItem = this->GetActiveMenuItem();
@@ -338,8 +332,10 @@ void GZMenuManager::ValidateNewIncrement() {
 }
 
 void GZMenuManager::AssignPrevMenu() {
-    if (this->mpActiveMenu->mPrev != NULL) {
-        this->mpActiveMenu = this->mpActiveMenu->mPrev;
+    if (this->mpPrevMenu != NULL) {
+        GZMenu* pPrevMenu = this->mpActiveMenu;
+        this->mpActiveMenu = this->mpPrevMenu;
+        this->mpPrevMenu = pPrevMenu;
         this->mState.itemIndex = 0;
         this->mState.requestRedraw = true;
     }
@@ -394,8 +390,8 @@ void GZMenuManager::Update() {
             changed = true;
         }
 
-        if (changed && this->mState.itemIndex > 0 && pActiveMenuItem->mActionCallback != NULL) {
-            pActiveMenuItem->mActionCallback(pActiveMenuItem->params);
+        if (changed && this->mState.itemIndex > 0 && pActiveMenuItem->action != NULL) {
+            pActiveMenuItem->action(pActiveMenuItem->params);
             this->mState.requestRedraw = true;
         }
     }
@@ -403,16 +399,15 @@ void GZMenuManager::Update() {
     if (this->mControls.ok.Executed(this->mpButtons)) {
         // handle confirmation stuff
 
-        if (!pActiveMenuItem->needSaveFile || (pActiveMenuItem->needSaveFile && gGZ.IsAdventureMode())) {
-            if ((!this->IsAmountsMenuActive() || this->mState.itemIndex == 0) &&
-                pActiveMenuItem->mActionCallback != NULL) {
-                pActiveMenuItem->mActionCallback(pActiveMenuItem->params);
+        if (!this->mpActiveMenu->needSaveFile || (this->mpActiveMenu->needSaveFile && gGZ.IsAdventureMode())) {
+            if ((!this->IsAmountsMenuActive() || this->mState.itemIndex == 0) && pActiveMenuItem->action != NULL) {
+                pActiveMenuItem->action(pActiveMenuItem->params);
 
                 if (this->IsInventoryMenuActive()) {
                     this->mState.requestRedraw = true;
                 }
-            } else if (pActiveMenuItem->mSubMenu != NULL) {
-                this->mpActiveMenu = pActiveMenuItem->mSubMenu;
+            } else if (pActiveMenuItem->submenu != NULL) {
+                this->mpActiveMenu = pActiveMenuItem->submenu;
                 this->mState.itemIndex = 0;
                 this->mState.requestRedraw = true;
             }
@@ -452,31 +447,36 @@ void GZMenuManager::SetAmountString(s16 index, Vec2b* pPos, bool selected) {
     switch (index - 1) {
         case InventoryAmountType_Bow:
             if (data_027e0ce0 != NULL && data_027e0ce0->mUnk_28 != NULL) {
-                DisplayDebugTextF(0, pPos, 0, selected, " (%d/%d)", data_027e0ce0->mUnk_28->mArrowAmount, maxArrows);
+                DisplayDebugTextF(DRAW_TO_TOP_SCREEN, pPos, 0, selected, " (%d/%d)",
+                                  data_027e0ce0->mUnk_28->mArrowAmount, maxArrows);
             }
             break;
         case InventoryAmountType_Bombs:
             if (data_027e0ce0 != NULL && data_027e0ce0->mUnk_28 != NULL) {
-                DisplayDebugTextF(0, pPos, 0, selected, " (%d/%d)", data_027e0ce0->mUnk_28->mBombAmount, maxBombs);
+                DisplayDebugTextF(DRAW_TO_TOP_SCREEN, pPos, 0, selected, " (%d/%d)",
+                                  data_027e0ce0->mUnk_28->mBombAmount, maxBombs);
             }
             break;
         case InventoryAmountType_QuiverCapacity:
-            DisplayDebugTextF(0, pPos, 0, selected, " (%d)", maxArrows);
+            DisplayDebugTextF(DRAW_TO_TOP_SCREEN, pPos, 0, selected, " (%d)", maxArrows);
             break;
         case InventoryAmountType_BombCapacity:
-            DisplayDebugTextF(0, pPos, 0, selected, " (%d)", maxBombs);
+            DisplayDebugTextF(DRAW_TO_TOP_SCREEN, pPos, 0, selected, " (%d)", maxBombs);
             break;
         case InventoryAmountType_Potion1:
-            DisplayDebugTextF(0, pPos, 0, selected, " (%s)", szValueToPotion[data_027e0ce0->mUnk_28->mPotions[0]]);
+            DisplayDebugTextF(DRAW_TO_TOP_SCREEN, pPos, 0, selected, " (%s)",
+                              szValueToPotion[data_027e0ce0->mUnk_28->mPotions[0]]);
             break;
         case InventoryAmountType_Potion2:
-            DisplayDebugTextF(0, pPos, 0, selected, " (%s)", szValueToPotion[data_027e0ce0->mUnk_28->mPotions[1]]);
+            DisplayDebugTextF(DRAW_TO_TOP_SCREEN, pPos, 0, selected, " (%s)",
+                              szValueToPotion[data_027e0ce0->mUnk_28->mPotions[1]]);
             break;
         case InventoryAmountType_SmallKeys:
-            DisplayDebugTextF(0, pPos, 0, selected, " (%d/%d)", data_027e0ce0->mUnk_28->mKeyAmount, MAX_KEYS);
+            DisplayDebugTextF(DRAW_TO_TOP_SCREEN, pPos, 0, selected, " (%d/%d)", data_027e0ce0->mUnk_28->mKeyAmount,
+                              MAX_KEYS);
             break;
         case InventoryAmountType_LightTears:
-            DisplayDebugTextF(0, pPos, 0, selected, " (%d/%d)", data_027e0ce0->mUnk_28->mTearsAmount,
+            DisplayDebugTextF(DRAW_TO_TOP_SCREEN, pPos, 0, selected, " (%d/%d)", data_027e0ce0->mUnk_28->mTearsAmount,
                               MAX_TEARS_OF_LIGHT);
             break;
         default:
@@ -486,124 +486,97 @@ void GZMenuManager::SetAmountString(s16 index, Vec2b* pPos, bool selected) {
 
 void GZMenuManager::SetupScreen() {
     // reset the top screen buffer
-    memset(&data_0204d9d0[0], 0, sizeof(Screen));
+    memset(&data_0204d9d0[DRAW_TO_TOP_SCREEN], 0, sizeof(Screen));
 
     // send the menu item strings to the buffer
     Vec2b elemPos = this->mState.menuPos;
-    for (s16 i = 0; i < this->mpActiveMenu->mCount; i++) {
-        GZMenuItem* pActiveMenuItem = &this->mpActiveMenu->mpItems[i];
-        const char* szName = pActiveMenuItem->mName;
-        Vec2b extraPos = elemPos;
-        bool selected = i == this->mState.itemIndex;
-        extraPos.x += strlen(szName);
-
-        // 0 = white, 1 = red, 2 = darker red, 3 = dark green
-        DisplayDebugText(0, &elemPos, 0, selected, szName);
-
-        if (i > 0) {
-            if (this->IsAmountsMenuActive()) {
-                this->SetAmountString(i, &extraPos, selected);
-            } else if (this->IsInventoryMenuActive() && pActiveMenuItem->mSubMenu == NULL) {
-                bool hasItem = GET_FLAG(data_027e0ce0->mUnk_28->mUnk_08, pActiveMenuItem->params & 0xFF);
-                DisplayDebugText(0, &extraPos, 0, selected, hasItem ? " (obtained)" : " (not obtained)");
-            } else if (pActiveMenuItem->needSaveFile && !gGZ.IsAdventureMode()) {
-                DisplayDebugText(0, &extraPos, 0, selected, " (disabled)");
-            }
-        }
-
-        elemPos.y++;
-    }
-
     if (this->IsCommandsMenuActive()) {
         gCommandManager.Draw(&elemPos);
+    } else {
+        for (s16 i = 0; i < this->mpActiveMenu->mCount; i++) {
+            GZMenuItem* pActiveMenuItem = &this->mpActiveMenu->entries[i];
+            const char* szName = pActiveMenuItem->name;
+            Vec2b extraPos = elemPos;
+            bool selected = i == this->mState.itemIndex;
+            extraPos.x += strlen(szName);
+
+            // 0 = white, 1 = red, 2 = darker red, 3 = dark green
+            DisplayDebugText(DRAW_TO_TOP_SCREEN, &elemPos, 0, selected, szName);
+
+            if (this->IsAmountsMenuActive()) {
+                this->SetAmountString(i, &extraPos, selected);
+            } else if (this->IsInventoryMenuActive() && pActiveMenuItem->submenu == NULL) {
+                bool hasItem = GET_FLAG(data_027e0ce0->mUnk_28->mUnk_08, pActiveMenuItem->params & 0xFF);
+                DisplayDebugText(DRAW_TO_TOP_SCREEN, &extraPos, 0, selected,
+                                 hasItem ? " (obtained)" : " (not obtained)");
+            } else if (this->mpActiveMenu->needSaveFile && !gGZ.IsAdventureMode()) {
+                DisplayDebugText(DRAW_TO_TOP_SCREEN, &extraPos, 0, selected, " (disabled)");
+            }
+
+            elemPos.y++;
+        }
     }
 
     // send the arrow to the buffer
     Vec2b arrowPos = this->mState.menuPos;
     arrowPos.x--;
     arrowPos.y += this->mState.itemIndex;
-    DisplayDebugText(0, &arrowPos, 0, 1, ">");
+    DisplayDebugText(DRAW_TO_TOP_SCREEN, &arrowPos, 0, 1, ">");
     arrowPos.y++;
 
     if (this->IsSettingsMenuActive()) {
         // special handling for the settings screen
         Vec2b settingsPos = this->mState.menuPos;
         settingsPos.y = elemPos.y + 1;
-        DisplayDebugTextF(0, &settingsPos, 0, 0, "Current Profile: %d", gSettings.mProfileHeader.curProfileIndex + 1);
+        DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 0, "Current Profile: %d",
+                          gSettings.mProfileHeader.curProfileIndex + 1);
 
         settingsPos.y += 15;
         if (gSettings.error) {
-            DisplayDebugTextF(0, &settingsPos, 0, 1, "Error detected: 0x%X", gSettings.errorCode);
+            DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 1, "Error detected: 0x%X", gSettings.errorCode);
         } else if (this->mState.successTimer > 0) {
-            DisplayDebugTextF(0, &settingsPos, 0, 0, "Success!", gSettings.errorCode);
+            DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 0, "Success!", gSettings.errorCode);
         }
     } else if (this->IsAboutMenuActive()) {
         // special handling for the about screen
         Vec2b aboutPos = this->mState.menuPos;
         aboutPos.y = elemPos.y + 1; // start wherever the item list ended
-        DisplayDebugTextF(0, &aboutPos, 0, 0, "Code Version: %s", gBuildGitVersion);
+        DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &aboutPos, 0, 0, "Code Version: %s", gBuildGitVersion);
 
         aboutPos.y++;
-        DisplayDebugTextF(0, &aboutPos, 0, 0, "Build Author: %s", gBuildAuthor);
+        DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &aboutPos, 0, 0, "Build Author: %s", gBuildAuthor);
 
         aboutPos.y++;
-        DisplayDebugTextF(0, &aboutPos, 0, 0, "Commit Author: %s", gCommitAuthor);
+        DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &aboutPos, 0, 0, "Commit Author: %s", gCommitAuthor);
 
         aboutPos.y++;
-        DisplayDebugTextF(0, &aboutPos, 0, 0, "Commit Name: %s", gCommitGitString);
+        DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &aboutPos, 0, 0, "Commit Name: %s", gCommitGitString);
 
         aboutPos.y += 16;
-        DisplayDebugText(0, &aboutPos, 0, 0, "Licensed under GPL-3.0");
+        DisplayDebugText(DRAW_TO_TOP_SCREEN, &aboutPos, 0, 0, "Licensed under GPL-3.0");
 
         aboutPos.y++;
-        DisplayDebugText(0, &aboutPos, 0, 0, "Made with <3 by Yanis2");
+        DisplayDebugText(DRAW_TO_TOP_SCREEN, &aboutPos, 0, 0, "Made with <3 by Yanis2");
     }
 }
 
 void GZMenuManager::StartDraw() {
-    // don't ask me I have no idea how this works, feel free to improve
-
-    prevDispCnt = REG_DISPCNT;
     prevDispCnt_Sub = REG_DISPCNT_SUB;
-    prevVRAM_CNT_B = REG_VRAM_CNT_B;
-
-    DC_FlushAll();
-    func_020131ec();
-    REG_POWER_CNT |= 0x8000;
-    func_02023770(2); // no corruption when commented but no text
-    GX_SetGraphicsMode(1, 0, 0);
-    GXS_SetGraphicsMode(0);
-
-    REG_DISPCNT = ((REG_DISPCNT & ~0x1F00) | 0x100);
-    REG_DISPCNT_SUB = (REG_DISPCNT_SUB & ~0x1F00) | 0x100;
-    func_0201b180(true, true); // loads the font (participate in the corruption also?)
+    REG_DISPCNT_SUB = (REG_DISPCNT_SUB & ~0x0400) | 0x100; // disable BG2 and make sure BG0 is enabled
+    func_0201b180(false, true); // loads the font (participate in the corruption also?)
 }
 
 void GZMenuManager::Draw() {
-    func_0201b278(true, true); // copy screen
-    func_020131ec();
-    SetBrightColor((void*)&REG_MASTER_BRIGHT, 0);
-    SetBrightColor((void*)&REG_MASTER_BRIGHT_SUB, 0);
-
-    if (func_020147a8() != 0) {
-        data_ov000_020b50c0.func_ov000_02069f58();
-    }
-
-    while (this->mState.isOpened && !this->mState.requestRedraw) {
-        func_020131ec();
-        gGZ.Update();
-        this->Update();
-    }
+    func_0201b278(false, true); // copy screen
 }
 
 void GZMenuManager::StopDraw() {
-    if (gOverlayManager.mLoadedOverlays[OverlaySlot_4] == OverlayIndex_Title) {
-        GX_SetGraphicsMode(1, 0, 1);
-        GXS_SetGraphicsMode(5);
-    }
-
-    memset((void*)0x068A0000, 0, 0x21A0);
-    REG_DISPCNT = prevDispCnt;
     REG_DISPCNT_SUB = prevDispCnt_Sub;
-    REG_VRAM_CNT_B = prevVRAM_CNT_B;
+
+    // good solution to fix the map but the issue is also fixable with the painting stuff
+    // might better to figure that out instead
+    // if (data_027e0994 != NULL && data_027e09a4 != NULL && gGZ.IsAdventureMode()) {
+    //     99 because we load map99.bin
+    //     data_027e0994->vfunc_38(data_027e09a4->mSceneIndex, 99, 0, 0);
+    // }
 }

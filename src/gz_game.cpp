@@ -62,14 +62,7 @@ void CustomGame::Run() {
 
     do {
         gGZ.Update();
-
-        {
-            gMenuManager.Update();
-
-            if (gMenuManager.IsActive()) {
-                gMenuManager.Draw();
-            }
-        }
+        gMenuManager.Update();
 
         // stgz: pause and frame advance block
         {

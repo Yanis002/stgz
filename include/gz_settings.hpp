@@ -16,8 +16,6 @@ extern "C" void func_02030d58(u16 lockID); // CARD_UnlockBackup
 #define MAX_POS_SLOTS 8
 #define MAX_SAVE_PROFILES 8
 
-//! TODO: make it one setting set per save file
-
 extern "C" {
 typedef struct GZProfileHeader {
     u8 curProfileIndex;
@@ -25,7 +23,6 @@ typedef struct GZProfileHeader {
 
 // the save file is large so we don't care about packing stuff to save space
 typedef struct GZProfile {
-    u8 profileIndex;
     bool mFasterTitleScreen; // goes into the "touch or start to exit" state immediately
     bool mSkipTitleScreen; // same as above except it jump straight into the file select without requiring any input
     s8 mPositionIndex;

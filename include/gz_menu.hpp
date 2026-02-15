@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.hpp"
 #include "gz_controls.hpp"
 
 #include <Item/ItemManager.hpp>
@@ -8,7 +9,8 @@
 #include <nitro/math.h>
 #include <types.h>
 
-typedef void (*GZMenuAction)(u32 params);
+#define DRAW_TO_TOP_SCREEN 1
+
 struct GZMenu;
 
 typedef enum InventoryAmountType {
@@ -24,18 +26,18 @@ typedef enum InventoryAmountType {
 } InventoryAmountType;
 
 struct GZMenuItem {
-    const char* mName; // menu item name
-    GZMenuAction mActionCallback; // associated action
-    u32 params; // parameters for the action callback
-    GZMenu* mSubMenu; // tied submenu
-    bool needSaveFile; // does it require the save data
-    s32 value; // misc value for internal use
+    const char* name;
+    GZAction action;
+    u32 params;
+    GZMenu* submenu;
+    int value;
 };
 
 struct GZMenu {
-    GZMenuItem* mpItems;
+    GZMenuItem* entries;
     s32 mCount;
-    GZMenu* mPrev;
+    bool needSaveFile;
+    s16 itemIndex;
 };
 
 struct GZMenuState {
@@ -78,6 +80,7 @@ class GZMenuManager {
   public:
     GZMenuState mState;
     GZMenu* mpActiveMenu;
+    GZMenu* mpPrevMenu;
     GZMenuControls mControls;
     Input* mpButtons;
 
@@ -90,7 +93,7 @@ class GZMenuManager {
         this->mState.isOpened = false;
     }
 
-    GZMenuItem* GetActiveMenuItem() { return &this->mpActiveMenu->mpItems[this->mState.itemIndex]; }
+    GZMenuItem* GetActiveMenuItem() { return &this->mpActiveMenu->entries[this->mState.itemIndex]; }
 
     bool IsInventoryMenuActive();
     bool IsAmountsMenuActive();
