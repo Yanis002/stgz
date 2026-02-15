@@ -96,12 +96,18 @@ GZCommandManager::GZCommandManager() {
 }
 
 void GZCommandManager::CreateMenuItems() {
-    this->mMenu.entries = new GZMenuItem[ARRAY_LEN(sCommands)];
+    this->mMenu.parent = gMenuManager.GetMainMenu();
+    this->mMenu.mCount = ARRAY_LEN(sCommands);
+    this->mMenu.entries = new GZMenuItem[this->mMenu.mCount];
+    this->mMenu.needSaveFile = false;
+    this->mMenu.itemIndex = 0;
 
-    for (int i = 0; i < ARRAY_LEN(sCommands); i++) {
+    for (int i = 0; i < this->mMenu.mCount; i++) {
         this->mMenu.entries[i].name = sCommands[i].btnCombo.name;
         this->mMenu.entries[i].action = sCommands[i].actionCallback;
+        this->mMenu.entries[i].params = 0;
         this->mMenu.entries[i].submenu = NULL;
+        this->mMenu.entries[i].value = 0;
     }
 }
 

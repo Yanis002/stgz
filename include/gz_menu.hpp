@@ -34,6 +34,7 @@ struct GZMenuItem {
 };
 
 struct GZMenu {
+    GZMenu* parent;
     GZMenuItem* entries;
     s32 mCount;
     bool needSaveFile;
@@ -80,7 +81,6 @@ class GZMenuManager {
   public:
     GZMenuState mState;
     GZMenu* mpActiveMenu;
-    GZMenu* mpPrevMenu;
     GZMenuControls mControls;
     Input* mpButtons;
 
@@ -93,15 +93,19 @@ class GZMenuManager {
         this->mState.isOpened = false;
     }
 
-    GZMenuItem* GetActiveMenuItem() { return &this->mpActiveMenu->entries[this->mState.itemIndex]; }
+    GZMenuItem* GetActiveMenuItem() {
+        return this->mState.itemIndex == 0 ? NULL : &this->mpActiveMenu->entries[this->mState.itemIndex - 1];
+    }
 
+    bool IsMainMenuActive();
     bool IsInventoryMenuActive();
     bool IsAmountsMenuActive();
     bool IsCommandsMenuActive();
     bool IsSettingsMenuActive();
     bool IsAboutMenuActive();
 
-    void SetAmountString(s16 index, Vec2b* pPos, bool selected);
+    GZMenu* GetMainMenu();
+    void SetAmountString(InventoryAmountType eType, Vec2b* pPos, bool selected);
     void ValidateNewIncrement();
     void AssignPrevMenu();
     void Update(); // update routine

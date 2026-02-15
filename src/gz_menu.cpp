@@ -51,12 +51,6 @@ Layout:
     - About
 */
 
-/*
-TODO LIST:
-- OBJ toggle (~0x1400)
-- reimplement about menu and back/quit
-*/
-
 struct Screen {
     /* 00 */ u16 width;
     /* 02 */ u16 height;
@@ -69,17 +63,11 @@ extern Screen data_0204d9d0[2];
 
 extern "C" void DisplayDebugText(int, void*, int, int, const char*);
 extern "C" void DisplayDebugTextF(int, void*, int, int, const char*, ...);
-extern "C" void DC_FlushAll();
-extern "C" void func_020131ec();
-extern "C" void GX_SetGraphicsMode(int, int, int);
 extern "C" void GXS_SetGraphicsMode(int);
 extern "C" void func_0201b180(bool, bool);
-extern "C" unk32 func_020147a8();
-extern "C" void func_0201b278(bool, bool);
-extern "C" void SetBrightColor(void*, int);
+extern "C" void func_02027654(void*, int); // DC_FlushRange
+extern "C" void func_020252ec(void*, int, int); // GX0_LoadBG0Scr
 
-static void Quit(u32 params);
-static void Back(u32 params);
 static void UpdateInventory(u32 params);
 static void UpdateAmounts(u32 params);
 
@@ -136,27 +124,20 @@ static GZMenuItem sSettingsMenuItems[] = {
 };
 
 static GZMenuItem sMainMenuItems[] = {
-    {"Inventory", NULL, 0, &sInventoryMenu, 0},
-    {"Collection", NULL, 0, &sCollectionMenu, 0},
-    {"Settings", NULL, 0, &sSettingsMenu, 0},
-    {"Commands", NULL, 0, &gCommandManager.mMenu, 0},
+    {"Inventory", NULL, 0, &sInventoryMenu, 0}, {"Collection", NULL, 0, &sCollectionMenu, 0},
+    {"Settings", NULL, 0, &sSettingsMenu, 0},   {"Commands", NULL, 0, &gCommandManager.mMenu, 0},
+    {"About", NULL, 0, &sAboutMenu, 0},
 };
 
 // pointer to the item list, number of items, pointer to the previous menu
-GZMenu sMainMenu = {sMainMenuItems, ARRAY_LEN(sMainMenuItems), false, 0};
-GZMenu sInventoryMenu = {sInventoryMenuItems, ARRAY_LEN(sInventoryMenuItems), true, 0};
-GZMenu sAmountsMenu = {sAmountsMenuItems, ARRAY_LEN(sAmountsMenuItems), true, 0};
-GZMenu sCollectionMenu = {sCollectionMenuItems, ARRAY_LEN(sCollectionMenuItems), true, 0};
-GZMenu sSettingsMenu = {sSettingsMenuItems, ARRAY_LEN(sSettingsMenuItems), false, 0};
-// GZMenu sCommandsMenu = {sCommandsMenuItems, ARRAY_LEN(sCommandsMenuItems), 0};
-// GZMenu sAboutMenu = {sAboutMenuItems, ARRAY_LEN(sAboutMenuItems), 0};
-
-static void Quit(u32 params) { gMenuManager.Quit(); }
-
-static void Back(u32 params) { gMenuManager.AssignPrevMenu(); }
+GZMenu sMainMenu = {NULL, sMainMenuItems, ARRAY_LEN(sMainMenuItems), false, 0};
+GZMenu sInventoryMenu = {&sMainMenu, sInventoryMenuItems, ARRAY_LEN(sInventoryMenuItems), true, 0};
+GZMenu sAmountsMenu = {&sInventoryMenu, sAmountsMenuItems, ARRAY_LEN(sAmountsMenuItems), true, 0};
+GZMenu sCollectionMenu = {&sMainMenu, sCollectionMenuItems, ARRAY_LEN(sCollectionMenuItems), true, 0};
+GZMenu sSettingsMenu = {&sMainMenu, sSettingsMenuItems, ARRAY_LEN(sSettingsMenuItems), false, 0};
+GZMenu sAboutMenu = {&sMainMenu, NULL, 0, false, 0};
 
 static void UpdateInventory(u32 params) {
-    GZMenuItem* pActiveMenuItem = gMenuManager.GetActiveMenuItem();
     ItemFlag eFlag = params & 0xFF;
 
     if (data_027e0ce0 == NULL || data_027e0ce0->mUnk_28 == NULL) {
@@ -185,7 +166,7 @@ static void UpdateAmounts(u32 params) {
     GZMenuItem* pActiveMenuItem = gMenuManager.GetActiveMenuItem();
     InventoryAmountType eType = (InventoryAmountType)(params & 0xFF);
 
-    if (data_027e0ce0 == NULL || data_027e0ce0->mUnk_28 == NULL) {
+    if (pActiveMenuItem == NULL || data_027e0ce0 == NULL || data_027e0ce0->mUnk_28 == NULL) {
         return;
     }
 
@@ -264,6 +245,10 @@ GZMenuManager::GZMenuManager() {
     memset(&data_0204d9d0[DRAW_TO_TOP_SCREEN], 0, sizeof(Screen));
 }
 
+GZMenu* GZMenuManager::GetMainMenu() { return &sMainMenu; }
+
+bool GZMenuManager::IsMainMenuActive() { return this->mpActiveMenu == &sMainMenu; }
+
 bool GZMenuManager::IsInventoryMenuActive() { return this->mpActiveMenu == &sInventoryMenu; }
 
 bool GZMenuManager::IsAmountsMenuActive() { return this->mpActiveMenu == &sAmountsMenu; }
@@ -272,12 +257,13 @@ bool GZMenuManager::IsCommandsMenuActive() { return this->mpActiveMenu == &gComm
 
 bool GZMenuManager::IsSettingsMenuActive() { return this->mpActiveMenu == &sSettingsMenu; }
 
-bool GZMenuManager::IsAboutMenuActive() { return false; } // this->mpActiveMenu == &sAboutMenu; }
+bool GZMenuManager::IsAboutMenuActive() { return this->mpActiveMenu == &sAboutMenu; }
 
 void GZMenuManager::ValidateNewIncrement() {
     GZMenuItem* pActiveMenuItem = this->GetActiveMenuItem();
 
-    if (this->mState.itemIndex == 0) {
+    // redundant but whatever
+    if (pActiveMenuItem == NULL || this->mState.itemIndex == 0) {
         return;
     }
 
@@ -332,10 +318,8 @@ void GZMenuManager::ValidateNewIncrement() {
 }
 
 void GZMenuManager::AssignPrevMenu() {
-    if (this->mpPrevMenu != NULL) {
-        GZMenu* pPrevMenu = this->mpActiveMenu;
-        this->mpActiveMenu = this->mpPrevMenu;
-        this->mpPrevMenu = pPrevMenu;
+    if (this->mpActiveMenu->parent != NULL) {
+        this->mpActiveMenu = this->mpActiveMenu->parent;
         this->mState.itemIndex = 0;
         this->mState.requestRedraw = true;
     }
@@ -373,13 +357,13 @@ void GZMenuManager::Update() {
     }
 
     if (this->mControls.down.Executed(this->mpButtons)) {
-        if (this->mState.itemIndex + 1 < this->mpActiveMenu->mCount) {
+        if (this->mState.itemIndex + 1 < this->mpActiveMenu->mCount + 1) {
             this->mState.itemIndex++;
             this->mState.requestRedraw = true;
         }
     }
 
-    if (this->IsAmountsMenuActive()) {
+    if (this->IsAmountsMenuActive() && pActiveMenuItem != NULL) {
         bool changed = false;
 
         if (this->mControls.decrease.Executed(this->mpButtons)) {
@@ -399,17 +383,26 @@ void GZMenuManager::Update() {
     if (this->mControls.ok.Executed(this->mpButtons)) {
         // handle confirmation stuff
 
-        if (!this->mpActiveMenu->needSaveFile || (this->mpActiveMenu->needSaveFile && gGZ.IsAdventureMode())) {
-            if ((!this->IsAmountsMenuActive() || this->mState.itemIndex == 0) && pActiveMenuItem->action != NULL) {
-                pActiveMenuItem->action(pActiveMenuItem->params);
+        // null when "back" or "quit" is selected
+        if (pActiveMenuItem != NULL) {
+            if (!this->mpActiveMenu->needSaveFile || (this->mpActiveMenu->needSaveFile && gGZ.IsAdventureMode())) {
+                if ((!this->IsAmountsMenuActive() || this->mState.itemIndex == 0) && pActiveMenuItem->action != NULL) {
+                    pActiveMenuItem->action(pActiveMenuItem->params);
 
-                if (this->IsInventoryMenuActive()) {
+                    if (this->IsInventoryMenuActive()) {
+                        this->mState.requestRedraw = true;
+                    }
+                } else if (pActiveMenuItem->submenu != NULL) {
+                    this->mpActiveMenu = pActiveMenuItem->submenu;
+                    this->mState.itemIndex = 0;
                     this->mState.requestRedraw = true;
                 }
-            } else if (pActiveMenuItem->submenu != NULL) {
-                this->mpActiveMenu = pActiveMenuItem->submenu;
-                this->mState.itemIndex = 0;
-                this->mState.requestRedraw = true;
+            }
+        } else {
+            if (this->IsMainMenuActive()) {
+                this->Quit();
+            } else {
+                this->AssignPrevMenu();
             }
         }
     }
@@ -433,7 +426,7 @@ void GZMenuManager::Update() {
     }
 }
 
-void GZMenuManager::SetAmountString(s16 index, Vec2b* pPos, bool selected) {
+void GZMenuManager::SetAmountString(InventoryAmountType eType, Vec2b* pPos, bool selected) {
     u8 maxArrows = data_027e0ce0->mUnk_28->func_ov000_020a8728();
     u8 maxBombs = data_027e0ce0->mUnk_28->func_ov000_020a8748();
 
@@ -444,7 +437,7 @@ void GZMenuManager::SetAmountString(s16 index, Vec2b* pPos, bool selected) {
         "Yellow Potion", // PotionType_Yellow
     };
 
-    switch (index - 1) {
+    switch (eType) {
         case InventoryAmountType_Bow:
             if (data_027e0ce0 != NULL && data_027e0ce0->mUnk_28 != NULL) {
                 DisplayDebugTextF(DRAW_TO_TOP_SCREEN, pPos, 0, selected, " (%d/%d)",
@@ -485,11 +478,16 @@ void GZMenuManager::SetAmountString(s16 index, Vec2b* pPos, bool selected) {
 }
 
 void GZMenuManager::SetupScreen() {
+    Vec2b elemPos = this->mState.menuPos;
+
     // reset the top screen buffer
     memset(&data_0204d9d0[DRAW_TO_TOP_SCREEN], 0, sizeof(Screen));
 
     // send the menu item strings to the buffer
-    Vec2b elemPos = this->mState.menuPos;
+    const char* retStr = this->IsMainMenuActive() ? "Quit" : "Back";
+    DisplayDebugText(DRAW_TO_TOP_SCREEN, &elemPos, 0, this->mState.itemIndex == 0, retStr);
+    elemPos.y++;
+
     if (this->IsCommandsMenuActive()) {
         gCommandManager.Draw(&elemPos);
     } else {
@@ -497,14 +495,14 @@ void GZMenuManager::SetupScreen() {
             GZMenuItem* pActiveMenuItem = &this->mpActiveMenu->entries[i];
             const char* szName = pActiveMenuItem->name;
             Vec2b extraPos = elemPos;
-            bool selected = i == this->mState.itemIndex;
+            bool selected = i + 1 == this->mState.itemIndex;
             extraPos.x += strlen(szName);
 
             // 0 = white, 1 = red, 2 = darker red, 3 = dark green
             DisplayDebugText(DRAW_TO_TOP_SCREEN, &elemPos, 0, selected, szName);
 
             if (this->IsAmountsMenuActive()) {
-                this->SetAmountString(i, &extraPos, selected);
+                this->SetAmountString((InventoryAmountType)(pActiveMenuItem->params & 0xFF), &extraPos, selected);
             } else if (this->IsInventoryMenuActive() && pActiveMenuItem->submenu == NULL) {
                 bool hasItem = GET_FLAG(data_027e0ce0->mUnk_28->mUnk_08, pActiveMenuItem->params & 0xFF);
                 DisplayDebugText(DRAW_TO_TOP_SCREEN, &extraPos, 0, selected,
@@ -552,7 +550,7 @@ void GZMenuManager::SetupScreen() {
         aboutPos.y++;
         DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &aboutPos, 0, 0, "Commit Name: %s", gCommitGitString);
 
-        aboutPos.y += 16;
+        aboutPos.y += 15;
         DisplayDebugText(DRAW_TO_TOP_SCREEN, &aboutPos, 0, 0, "Licensed under GPL-3.0");
 
         aboutPos.y++;
@@ -567,7 +565,9 @@ void GZMenuManager::StartDraw() {
 }
 
 void GZMenuManager::Draw() {
-    func_0201b278(false, true); // copy screen
+    // copy screen
+    func_02027654(data_0204d9d0[DRAW_TO_TOP_SCREEN].data, sizeof(data_0204d9d0[DRAW_TO_TOP_SCREEN].data));
+    func_020252ec(data_0204d9d0[DRAW_TO_TOP_SCREEN].data, 0, sizeof(data_0204d9d0[DRAW_TO_TOP_SCREEN].data));
 }
 
 void GZMenuManager::StopDraw() {
