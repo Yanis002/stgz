@@ -121,14 +121,14 @@ static GZMenuItem sAmountsMenuItems[] = {
 // -- collection menu items --
 
 static GZMenuItem sCollectionMenuItems[] = {
-    {"Shield", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_Shield, NULL, 0},
-    {"Sword", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_Sword, NULL, 0},
-    {"LokomoSword", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_LokomoSword, NULL, 0},
-    {"RecruitUniform", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_RecruitUniform, NULL, 0},
-    {"ScrollBeam", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_ScrollBeam, NULL, 0},
-    {"ScrollSpinAttack", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_ScrollSpinAttack, NULL, 0},
-    {"AncientShield", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_AncientShield, NULL, 0},
-    {"PanFlute", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_PanFlute, NULL, 0},
+    {"Shield", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_Shield, NULL, 0},
+    {"Sword", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_Sword, NULL, 0},
+    {"Lokomo Sword", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_LokomoSword, NULL, 0},
+    {"Recruit Uniform", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_RecruitUniform, NULL, 0},
+    {"Scroll Beam", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_ScrollBeam, NULL, 0},
+    {"Scroll Spin Attack", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_ScrollSpinAttack, NULL, 0},
+    {"Ancient Shield", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_AncientShield, NULL, 0},
+    {"Pan Flute", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_PanFlute, NULL, 0},
 };
 
 // -- settings menu items --
@@ -183,25 +183,18 @@ static void UpdateInventory(u32 params) {
         return;
     }
 
-    switch (eFlag) {
-        case ItemFlag_Whirlwind:
-        case ItemFlag_Boomerang:
-        case ItemFlag_Whip:
-        case ItemFlag_Bow:
-        case ItemFlag_Bombs:
-        case ItemFlag_SandRod:
-            if (!GET_FLAG(data_027e0ce0->mUnk_28->mUnk_08, eFlag)) {
-                data_027e0ce0->mUnk_28->func_ov000_020a863c(eFlag);
-            } else {
-                data_027e0ce0->mUnk_28->func_ov000_020a865c(eFlag);
-            }
-            break;
-        default:
-            break;
+    if (!GET_FLAG(data_027e0ce0->mUnk_28->mUnk_08, eFlag)) {
+        data_027e0ce0->mUnk_28->func_ov000_020a863c(eFlag);
+    } else {
+        data_027e0ce0->mUnk_28->func_ov000_020a865c(eFlag);
     }
 }
 
 static bool HasObtainedItem(int itemIndex) {
+    if (data_027e0ce0 == NULL || data_027e0ce0->mUnk_28 == NULL) {
+        return false;
+    }
+
     return GET_FLAG(data_027e0ce0->mUnk_28->mUnk_08, gMenuManager.mpActiveMenu->entries[itemIndex].params & 0xFF);
 }
 
