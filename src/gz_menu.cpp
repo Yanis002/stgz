@@ -68,19 +68,6 @@ extern "C" void func_0201b180(bool, bool);
 extern "C" void func_02027654(void*, int); // DC_FlushRange
 extern "C" void func_020252ec(void*, int, int); // GX0_LoadBG0Scr
 
-static void UpdateInventory(u32 params);
-static void UpdateAmounts(u32 params);
-
-// settings menu
-static void PrevProfile(u32 params);
-static void NextProfile(u32 params);
-static void LoadDefaultProfile(u32 params);
-static void SaveSettings(u32 params);
-
-// display menu
-
-static void UpdateRegs(u32 params);
-
 extern GZMenu sMainMenu;
 extern GZMenu sInventoryMenu;
 extern GZMenu sAmountsMenu;
@@ -95,71 +82,84 @@ extern GZMenu sAboutMenu;
 // -- main menu items --
 
 static GZMenuItem sMainMenuItems[] = {
-    {"Inventory", NULL, 0, &sInventoryMenu, 0},
-    {"Collection", NULL, 0, &sCollectionMenu, 0},
-    {"Commands", NULL, 0, &gCommandManager.mMenu, 0},
-    {"Debug", NULL, 0, &sDebugMenu, 0},
-    {"Settings", NULL, 0, &sSettingsMenu, 0},
-    {"About", NULL, 0, &sAboutMenu, 0},
+    {"Inventory", GZMenuItemType_Default, NULL, NULL, 0, &sInventoryMenu, 0},
+    {"Collection", GZMenuItemType_Default, NULL, NULL, 0, &sCollectionMenu, 0},
+    {"Commands", GZMenuItemType_Default, NULL, NULL, 0, &gCommandManager.mMenu, 0},
+    {"Debug", GZMenuItemType_Default, NULL, NULL, 0, &sDebugMenu, 0},
+    {"Settings", GZMenuItemType_Default, NULL, NULL, 0, &sSettingsMenu, 0},
+    {"About", GZMenuItemType_Default, NULL, NULL, 0, &sAboutMenu, 0},
 };
 
 // -- inventory menu items --
 
+static void UpdateInventory(u32 params);
+static bool HasObtainedItem(int itemIndex);
+
 static GZMenuItem sInventoryMenuItems[] = {
-    {"Whirlwind", UpdateInventory, ItemFlag_Whirlwind, NULL, 0},
-    {"Boomerang", UpdateInventory, ItemFlag_Boomerang, NULL, 0},
-    {"Whip", UpdateInventory, ItemFlag_Whip, NULL, 0},
-    {"Bow", UpdateInventory, ItemFlag_Bow, NULL, 0},
-    {"Bombs", UpdateInventory, ItemFlag_Bombs, NULL, 0},
-    {"SandRod", UpdateInventory, ItemFlag_SandRod, NULL, 0},
-    {"Amounts", NULL, 0, &sAmountsMenu, 0},
+    {"Amounts", GZMenuItemType_Default, NULL, NULL, 0, &sAmountsMenu, 0},
+    {"Whirlwind", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_Whirlwind, NULL, 0},
+    {"Boomerang", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_Boomerang, NULL, 0},
+    {"Whip", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_Whip, NULL, 0},
+    {"Bow", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_Bow, NULL, 0},
+    {"Bombs", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_Bombs, NULL, 0},
+    {"SandRod", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_SandRod, NULL, 0},
 };
 
+static void UpdateAmounts(u32 params);
+
 static GZMenuItem sAmountsMenuItems[] = {
-    {"Bow", UpdateAmounts, InventoryAmountType_Bow, NULL, 0},
-    {"Bombs", UpdateAmounts, InventoryAmountType_Bombs, NULL, 0},
-    {"Quiver Capacity", UpdateAmounts, InventoryAmountType_QuiverCapacity, NULL, 0},
-    {"Bomb Bag Capacity", UpdateAmounts, InventoryAmountType_BombCapacity, NULL, 0},
-    {"Potion 1", UpdateAmounts, InventoryAmountType_Potion1, NULL, 0},
-    {"Potion 2", UpdateAmounts, InventoryAmountType_Potion2, NULL, 0},
-    {"Small Keys", UpdateAmounts, InventoryAmountType_SmallKeys, NULL, 0},
-    {"Light Tears", UpdateAmounts, InventoryAmountType_LightTears, NULL, 0},
+    {"Bow", GZMenuItemType_Increment, NULL, UpdateAmounts, InventoryAmountType_Bow, NULL, 0},
+    {"Bombs", GZMenuItemType_Increment, NULL, UpdateAmounts, InventoryAmountType_Bombs, NULL, 0},
+    {"Quiver Capacity", GZMenuItemType_Increment, NULL, UpdateAmounts, InventoryAmountType_QuiverCapacity, NULL, 0},
+    {"Bomb Bag Capacity", GZMenuItemType_Increment, NULL, UpdateAmounts, InventoryAmountType_BombCapacity, NULL, 0},
+    {"Potion 1", GZMenuItemType_Increment, NULL, UpdateAmounts, InventoryAmountType_Potion1, NULL, 0},
+    {"Potion 2", GZMenuItemType_Increment, NULL, UpdateAmounts, InventoryAmountType_Potion2, NULL, 0},
+    {"Small Keys", GZMenuItemType_Increment, NULL, UpdateAmounts, InventoryAmountType_SmallKeys, NULL, 0},
+    {"Light Tears", GZMenuItemType_Increment, NULL, UpdateAmounts, InventoryAmountType_LightTears, NULL, 0},
 };
 
 // -- collection menu items --
 
 static GZMenuItem sCollectionMenuItems[] = {
-    {"Shield", UpdateInventory, ItemFlag_Shield, NULL, 0},
-    {"Sword", UpdateInventory, ItemFlag_Sword, NULL, 0},
-    {"LokomoSword", UpdateInventory, ItemFlag_LokomoSword, NULL, 0},
-    {"RecruitUniform", UpdateInventory, ItemFlag_RecruitUniform, NULL, 0},
-    {"ScrollBeam", UpdateInventory, ItemFlag_ScrollBeam, NULL, 0},
-    {"ScrollSpinAttack", UpdateInventory, ItemFlag_ScrollSpinAttack, NULL, 0},
-    {"AncientShield", UpdateInventory, ItemFlag_AncientShield, NULL, 0},
-    {"PanFlute", UpdateInventory, ItemFlag_PanFlute, NULL, 0},
+    {"Shield", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_Shield, NULL, 0},
+    {"Sword", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_Sword, NULL, 0},
+    {"LokomoSword", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_LokomoSword, NULL, 0},
+    {"RecruitUniform", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_RecruitUniform, NULL, 0},
+    {"ScrollBeam", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_ScrollBeam, NULL, 0},
+    {"ScrollSpinAttack", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_ScrollSpinAttack, NULL, 0},
+    {"AncientShield", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_AncientShield, NULL, 0},
+    {"PanFlute", GZMenuItemType_Default, NULL, UpdateInventory, ItemFlag_PanFlute, NULL, 0},
 };
 
 // -- settings menu items --
 
+static void PrevProfile(u32 params);
+static void NextProfile(u32 params);
+static void LoadDefaultProfile(u32 params);
+static void SaveSettings(u32 params);
+
 static GZMenuItem sSettingsMenuItems[] = {
-    {"Prev Profile", PrevProfile, 0, NULL, 0},
-    {"Next Profile", NextProfile, 0, NULL, 0},
-    {"Load Default Profile", LoadDefaultProfile, 0, NULL, 0},
-    {"Save Settings", SaveSettings, 0, NULL, 0},
+    {"Prev Profile", GZMenuItemType_Default, NULL, PrevProfile, 0, NULL, 0},
+    {"Next Profile", GZMenuItemType_Default, NULL, NextProfile, 0, NULL, 0},
+    {"Load Default Profile", GZMenuItemType_Default, NULL, LoadDefaultProfile, 0, NULL, 0},
+    {"Save Settings", GZMenuItemType_Default, NULL, SaveSettings, 0, NULL, 0},
 };
 
 // -- debug menu items --
 
 static GZMenuItem sDebugMenuItems[] = {
-    {"Regs", NULL, 0, &sRegsMenu, 0},
+    {"Regs", GZMenuItemType_Default, NULL, NULL, 0, &sRegsMenu, 0},
 };
 
+static void UpdateRegs(u32 params);
+static bool IsLayerEnabled(int itemIndex);
+
 static GZMenuItem sRegsMenuItems[] = {
-    {"Init. State", UpdateRegs, 0xFF, NULL, 0},
-    {"Toggle BG1", UpdateRegs, 9, NULL, 0},
-    {"Toggle BG2", UpdateRegs, 10, NULL, 0},
-    {"Toggle BG3", UpdateRegs, 11, NULL, 0},
-    {"Toggle OBJ", UpdateRegs, 12, NULL, 0},
+    {"Init. State", GZMenuItemType_Default, NULL, UpdateRegs, 0xFF, NULL, 0},
+    {"Toggle BG1", GZMenuItemType_Bool, IsLayerEnabled, UpdateRegs, 9, NULL, 0},
+    {"Toggle BG2", GZMenuItemType_Bool, IsLayerEnabled, UpdateRegs, 10, NULL, 0},
+    {"Toggle BG3", GZMenuItemType_Bool, IsLayerEnabled, UpdateRegs, 11, NULL, 0},
+    {"Toggle OBJ", GZMenuItemType_Bool, IsLayerEnabled, UpdateRegs, 12, NULL, 0},
 };
 
 // -- menu list --
@@ -201,15 +201,19 @@ static void UpdateInventory(u32 params) {
     }
 }
 
+static bool HasObtainedItem(int itemIndex) {
+    return GET_FLAG(data_027e0ce0->mUnk_28->mUnk_08, gMenuManager.mpActiveMenu->entries[itemIndex].params & 0xFF);
+}
+
 static void UpdateAmounts(u32 params) {
     GZMenuItem* pActiveMenuItem = gMenuManager.GetActiveMenuItem();
-    InventoryAmountType eType = (InventoryAmountType)(params & 0xFF);
+    InventoryAmountType eType = params & 0xFF;
 
     if (pActiveMenuItem == NULL || data_027e0ce0 == NULL || data_027e0ce0->mUnk_28 == NULL) {
         return;
     }
 
-    gMenuManager.ValidateNewIncrement();
+    gMenuManager.ValidateAmountIncrement();
 
     switch (eType) {
         case InventoryAmountType_Bow:
@@ -247,8 +251,6 @@ static void PrevProfile(u32 params) {
     } else {
         gSettings.mProfileHeader.curProfileIndex = 0;
     }
-
-    gMenuManager.mState.requestRedraw = true;
 }
 
 static void NextProfile(u32 params) {
@@ -257,20 +259,16 @@ static void NextProfile(u32 params) {
     if (gSettings.mProfileHeader.curProfileIndex >= ARRAY_LEN(gSettings.mProfiles)) {
         gSettings.mProfileHeader.curProfileIndex = ARRAY_LEN(gSettings.mProfiles) - 1;
     }
-
-    gMenuManager.mState.requestRedraw = true;
 }
 
 static void LoadDefaultProfile(u32 params) {
     gSettings.LoadDefaultProfile();
     gMenuManager.mState.successTimer = 90;
-    gMenuManager.mState.requestRedraw = true;
 }
 
 static void SaveSettings(u32 params) {
     gSettings.WriteSave();
     gMenuManager.mState.successTimer = 90;
-    gMenuManager.mState.requestRedraw = true;
 }
 
 static void UpdateRegs(u32 params) {
@@ -291,6 +289,12 @@ static void UpdateRegs(u32 params) {
             REG_DISPCNT_SUB |= value;
         }
     }
+}
+
+static bool IsLayerEnabled(int itemIndex) {
+    GZMenuItem* pActiveItem = &gMenuManager.mpActiveMenu->entries[itemIndex];
+    u32 value = 1 << (pActiveItem->params & 0x0F);
+    return REG_DISPCNT_SUB & value;
 }
 
 static u32 prevDispCnt_Sub;
@@ -324,7 +328,7 @@ bool GZMenuManager::IsSettingsMenuActive() { return this->mpActiveMenu == &sSett
 
 bool GZMenuManager::IsAboutMenuActive() { return this->mpActiveMenu == &sAboutMenu; }
 
-void GZMenuManager::ValidateNewIncrement() {
+void GZMenuManager::ValidateAmountIncrement() {
     GZMenuItem* pActiveMenuItem = this->GetActiveMenuItem();
 
     // redundant but whatever
@@ -399,6 +403,7 @@ void GZMenuManager::Update() {
             this->SetupScreen();
             this->StartDraw();
             this->mState.isOpened = true;
+            this->mState.requestRedraw = true;
         } else {
             this->Quit();
         }
@@ -428,7 +433,7 @@ void GZMenuManager::Update() {
         }
     }
 
-    if (this->IsAmountsMenuActive() && pActiveMenuItem != NULL) {
+    if (pActiveMenuItem != NULL && pActiveMenuItem->eType == GZMenuItemType_Increment) {
         bool changed = false;
 
         if (this->mControls.decrease.Executed(this->mpButtons)) {
@@ -439,7 +444,8 @@ void GZMenuManager::Update() {
             changed = true;
         }
 
-        if (changed && this->mState.itemIndex > 0 && pActiveMenuItem->action != NULL) {
+        // for now only amounts is using increments
+        if (this->IsAmountsMenuActive() && changed && this->mState.itemIndex > 0 && pActiveMenuItem->action != NULL) {
             pActiveMenuItem->action(pActiveMenuItem->params);
             this->mState.requestRedraw = true;
         }
@@ -453,15 +459,12 @@ void GZMenuManager::Update() {
             if (!this->mpActiveMenu->needSaveFile || (this->mpActiveMenu->needSaveFile && gGZ.IsAdventureMode())) {
                 if ((!this->IsAmountsMenuActive() || this->mState.itemIndex == 0) && pActiveMenuItem->action != NULL) {
                     pActiveMenuItem->action(pActiveMenuItem->params);
-
-                    if (this->IsInventoryMenuActive()) {
-                        this->mState.requestRedraw = true;
-                    }
                 } else if (pActiveMenuItem->submenu != NULL) {
                     this->mpActiveMenu = pActiveMenuItem->submenu;
                     this->mState.itemIndex = 0;
-                    this->mState.requestRedraw = true;
                 }
+
+                this->mState.requestRedraw = true;
             }
         } else {
             if (this->IsMainMenuActive()) {
@@ -563,15 +566,16 @@ void GZMenuManager::SetupScreen() {
             bool selected = i + 1 == this->mState.itemIndex;
             extraPos.x += strlen(szName);
 
-            // 0 = white, 1 = red, 2 = darker red, 3 = dark green
-            DisplayDebugText(DRAW_TO_TOP_SCREEN, &elemPos, 0, selected, szName);
+            if (pActiveMenuItem->eType == GZMenuItemType_Bool && pActiveMenuItem->checkCallback != NULL) {
+                DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &elemPos, 0, selected, "[%s]%s",
+                                  pActiveMenuItem->checkCallback(i) ? "x" : " ", szName);
+            } else {
+                // 0 = white, 1 = red, 2 = darker red, 3 = dark green
+                DisplayDebugText(DRAW_TO_TOP_SCREEN, &elemPos, 0, selected, szName);
+            }
 
             if (this->IsAmountsMenuActive()) {
-                this->SetAmountString((InventoryAmountType)(pActiveMenuItem->params & 0xFF), &extraPos, selected);
-            } else if (this->IsInventoryMenuActive() && pActiveMenuItem->submenu == NULL) {
-                bool hasItem = GET_FLAG(data_027e0ce0->mUnk_28->mUnk_08, pActiveMenuItem->params & 0xFF);
-                DisplayDebugText(DRAW_TO_TOP_SCREEN, &extraPos, 0, selected,
-                                 hasItem ? " (obtained)" : " (not obtained)");
+                this->SetAmountString(pActiveMenuItem->params & 0xFF, &extraPos, selected);
             } else if (this->mpActiveMenu->needSaveFile && !gGZ.IsAdventureMode()) {
                 DisplayDebugText(DRAW_TO_TOP_SCREEN, &extraPos, 0, selected, " (disabled)");
             }

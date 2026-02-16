@@ -104,6 +104,7 @@ void GZCommandManager::CreateMenuItems() {
 
     for (int i = 0; i < this->mMenu.mCount; i++) {
         this->mMenu.entries[i].name = sCommands[i].btnCombo.name;
+        this->mMenu.entries[i].eType = GZMenuItemType_Default;
         this->mMenu.entries[i].action = sCommands[i].actionCallback;
         this->mMenu.entries[i].params = 0;
         this->mMenu.entries[i].submenu = NULL;

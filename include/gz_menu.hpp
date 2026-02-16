@@ -13,7 +13,8 @@
 
 struct GZMenu;
 
-typedef enum InventoryAmountType {
+typedef u32 InventoryAmountType;
+enum InventoryAmountType_ {
     InventoryAmountType_Bow,
     InventoryAmountType_Bombs,
     InventoryAmountType_QuiverCapacity,
@@ -23,13 +24,24 @@ typedef enum InventoryAmountType {
     InventoryAmountType_SmallKeys,
     InventoryAmountType_LightTears,
     InventoryAmountType_Max
-} InventoryAmountType;
+};
+
+typedef u32 GZMenuItemType;
+enum GZMenuItemType_ {
+    GZMenuItemType_Default,
+    GZMenuItemType_Bool,
+    GZMenuItemType_Increment,
+};
 
 struct GZMenuItem {
     const char* name;
+    GZMenuItemType eType;
+    GZCheckCallback checkCallback; // must be set when using `GZMenuItemType_Bool`
     GZAction action;
     u32 params;
     GZMenu* submenu;
+
+    // internal
     int value;
 };
 
@@ -38,6 +50,8 @@ struct GZMenu {
     GZMenuItem* entries;
     s32 mCount;
     bool needSaveFile;
+
+    // internal
     s16 itemIndex;
 };
 
@@ -106,7 +120,7 @@ class GZMenuManager {
 
     GZMenu* GetMainMenu();
     void SetAmountString(InventoryAmountType eType, Vec2b* pPos, bool selected);
-    void ValidateNewIncrement();
+    void ValidateAmountIncrement();
     void AssignPrevMenu();
     void Update(); // update routine
     void SetupScreen(); // creates the strings etc
