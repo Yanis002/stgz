@@ -12,17 +12,17 @@
 extern "C" void DisplayDebugText(int, void*, int, int, const char*);
 extern "C" void DisplayDebugTextF(int, void*, int, int, const char*, ...);
 
-static void ExecuteLevitate();
-static void ExecutePause();
-static void ExecuteFrameAdvance();
-static void ExecutePrevPosition();
-static void ExecuteNextPosition();
-static void ExecuteSavePosition();
-static void ExecuteLoadPosition();
-static void ExecuteVoidOut();
-static void ExecuteTurbo();
+static void ExecuteLevitate(u32 params);
+static void ExecutePause(u32 params);
+static void ExecuteFrameAdvance(u32 params);
+static void ExecutePrevPosition(u32 params);
+static void ExecuteNextPosition(u32 params);
+static void ExecuteSavePosition(u32 params);
+static void ExecuteLoadPosition(u32 params);
+static void ExecuteVoidOut(u32 params);
+static void ExecuteTurbo(u32 params);
 
-// commands with default button combos
+// commands with default button combos, assigning the held btn to none means it's not required (and vice versa)
 static GZCmdItem sCommands[] = {
     {ButtonCombo("Levitate", BTN_X, BTN_NONE), ExecuteLevitate},
     {ButtonCombo("Pause/Unpause", BTN_NONE, BTN_DDOWN), ExecutePause},
@@ -35,9 +35,9 @@ static GZCmdItem sCommands[] = {
     {ButtonCombo("Turbo", BTN_R, BTN_B), ExecuteTurbo},
 };
 
-static void ExecuteLevitate() { data_027e0478.mPlayer.mVel.y = FLOAT_TO_Q20(0.334375f); }
+static void ExecuteLevitate(u32 params) { data_027e0478.mPlayer.mVel.y = FLOAT_TO_Q20(0.334375f); }
 
-static void ExecutePause() {
+static void ExecutePause(u32 params) {
     if (!gGZ.mState.isPaused) {
         gGZ.mState.isPaused = true;
     } else {
@@ -45,9 +45,9 @@ static void ExecutePause() {
     }
 }
 
-static void ExecuteFrameAdvance() { gGZ.mState.requestedFrames++; }
+static void ExecuteFrameAdvance(u32 params) { gGZ.mState.requestedFrames++; }
 
-static void ExecutePrevPosition() {
+static void ExecutePrevPosition(u32 params) {
     GZProfile* pProfile = gSettings.GetProfile();
 
     pProfile->mPositionIndex--;
@@ -57,7 +57,7 @@ static void ExecutePrevPosition() {
     }
 }
 
-static void ExecuteNextPosition() {
+static void ExecuteNextPosition(u32 params) {
     GZProfile* pProfile = gSettings.GetProfile();
 
     pProfile->mPositionIndex++;
@@ -67,31 +67,50 @@ static void ExecuteNextPosition() {
     }
 }
 
-static void ExecuteSavePosition() {
+static void ExecuteSavePosition(u32 params) {
     GZProfile* pProfile = gSettings.GetProfile();
     Vec3p* pPosArray = gSettings.GetPosArray();
     pPosArray[pProfile->mPositionIndex] = data_027e0478.mPlayer.mPos;
 }
 
-static void ExecuteLoadPosition() {
+static void ExecuteLoadPosition(u32 params) {
     GZProfile* pProfile = gSettings.GetProfile();
     Vec3p* pPosArray = gSettings.GetPosArray();
     data_027e0478.mPlayer.mPos = pPosArray[pProfile->mPositionIndex];
 }
 
-static void ExecuteVoidOut() {
+static void ExecuteVoidOut(u32 params) {
     if (gGZ.IsOnLand()) {
         data_027e0478.mPlayer.mPos.y = FLOAT_TO_Q20(-4000.0f);
     }
 }
 
-static void ExecuteTurbo() {}
+static void ExecuteTurbo(u32 params) {}
 
 GZCommandManager gCommandManager;
 
 GZCommandManager::GZCommandManager() {
     this->mpButtons = &gGZ.mButtons;
     this->mpCommands = sCommands;
+    this->InitMenu();
+}
+
+void GZCommandManager::InitMenu() {
+    this->mMenu.title = "Commands";
+    this->mMenu.parent = gMenuManager.GetMainMenu();
+    this->mMenu.mCount = ARRAY_LEN(sCommands);
+    this->mMenu.entries = new GZMenuItem[this->mMenu.mCount];
+    this->mMenu.needSaveFile = false;
+    this->mMenu.itemIndex = 0;
+
+    for (int i = 0; i < this->mMenu.mCount; i++) {
+        this->mMenu.entries[i].name = sCommands[i].btnCombo.name;
+        this->mMenu.entries[i].eType = GZMenuItemType_Default;
+        this->mMenu.entries[i].action = sCommands[i].actionCallback;
+        this->mMenu.entries[i].params = 0;
+        this->mMenu.entries[i].submenu = NULL;
+        this->mMenu.entries[i].value = 0;
+    }
 }
 
 void GZCommandManager::Update() {
@@ -104,7 +123,7 @@ void GZCommandManager::Update() {
 
         if (pCmd->btnCombo.Executed(this->mpButtons)) {
             if (pCmd->actionCallback != NULL) {
-                pCmd->actionCallback();
+                pCmd->actionCallback(0);
             }
         }
     }
@@ -118,7 +137,7 @@ void GZCommandManager::Draw(Vec2b* pPos) {
         bool selected = i + 1 == gMenuManager.mState.itemIndex;
 
         pCmd->btnCombo.SetComboString();
-        DisplayDebugText(0, &elemPos, 0, selected, pCmd->btnCombo.fullName);
+        DisplayDebugText(DRAW_TO_TOP_SCREEN, &elemPos, 0, selected, pCmd->btnCombo.fullName);
         elemPos.y++;
     }
 }

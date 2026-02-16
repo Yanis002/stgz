@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.hpp"
 #include "gz_controls.hpp"
 
 #include <Item/ItemManager.hpp>
@@ -8,10 +9,12 @@
 #include <nitro/math.h>
 #include <types.h>
 
-typedef void (*GZMenuAction)(u32 params);
+#define DRAW_TO_TOP_SCREEN 1
+
 struct GZMenu;
 
-typedef enum InventoryAmountType {
+typedef u32 InventoryAmountType;
+enum InventoryAmountType_ {
     InventoryAmountType_Bow,
     InventoryAmountType_Bombs,
     InventoryAmountType_QuiverCapacity,
@@ -21,21 +24,36 @@ typedef enum InventoryAmountType {
     InventoryAmountType_SmallKeys,
     InventoryAmountType_LightTears,
     InventoryAmountType_Max
-} InventoryAmountType;
+};
+
+typedef u32 GZMenuItemType;
+enum GZMenuItemType_ {
+    GZMenuItemType_Default,
+    GZMenuItemType_Bool,
+    GZMenuItemType_Increment,
+};
 
 struct GZMenuItem {
-    const char* mName; // menu item name
-    GZMenuAction mActionCallback; // associated action
-    u32 params; // parameters for the action callback
-    GZMenu* mSubMenu; // tied submenu
-    bool needSaveFile; // does it require the save data
-    s32 value; // misc value for internal use
+    const char* name;
+    GZMenuItemType eType;
+    GZCheckCallback checkCallback; // must be set when using `GZMenuItemType_Bool`
+    GZAction action;
+    u32 params;
+    GZMenu* submenu;
+
+    // internal
+    int value;
 };
 
 struct GZMenu {
-    GZMenuItem* mpItems;
+    const char* title;
+    GZMenu* parent;
+    GZMenuItem* entries;
     s32 mCount;
-    GZMenu* mPrev;
+    bool needSaveFile;
+
+    // internal
+    s16 itemIndex;
 };
 
 struct GZMenuState {
@@ -90,16 +108,20 @@ class GZMenuManager {
         this->mState.isOpened = false;
     }
 
-    GZMenuItem* GetActiveMenuItem() { return &this->mpActiveMenu->mpItems[this->mState.itemIndex]; }
+    GZMenuItem* GetActiveMenuItem() {
+        return this->mState.itemIndex == 0 ? NULL : &this->mpActiveMenu->entries[this->mState.itemIndex - 1];
+    }
 
+    bool IsMainMenuActive();
     bool IsInventoryMenuActive();
     bool IsAmountsMenuActive();
     bool IsCommandsMenuActive();
     bool IsSettingsMenuActive();
     bool IsAboutMenuActive();
 
-    void SetAmountString(s16 index, Vec2b* pPos, bool selected);
-    void ValidateNewIncrement();
+    GZMenu* GetMainMenu();
+    void SetAmountString(InventoryAmountType eType, Vec2b* pPos, bool selected);
+    void ValidateAmountIncrement();
     void AssignPrevMenu();
     void Update(); // update routine
     void SetupScreen(); // creates the strings etc

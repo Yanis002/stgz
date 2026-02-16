@@ -33,32 +33,25 @@ void GZSettings::Update() { this->ProcessTitleScreen(); }
 void GZSettings::ProcessTitleScreen() {
     GZProfile* pProfile = this->GetProfile();
 
-    if (!pProfile->mFasterTitleScreen && !pProfile->mSkipTitleScreen) {
+    if (data_027e0994 == NULL || (!pProfile->mFasterTitleScreen && !pProfile->mSkipTitleScreen)) {
         return;
     }
 
-    if (!gGZ.IsTitleScreen()) {
+    TitleScreen* pTitleScreen = data_027e0994->GetTitleScreen();
+
+    if (!gGZ.IsTitleScreen() || pTitleScreen == NULL || pTitleScreen->mShowUI) {
         return;
     }
 
-    if (data_027e0994 == NULL && data_027e0994->mpTitleScreen == NULL) {
-        return;
-    }
-
-    if (data_027e0994->mpTitleScreen->mShowUI) {
-        return;
-    }
-
-    data_027e0994->mpTitleScreen->func_ov025_020c4e54();
+    pTitleScreen->func_ov025_020c4e54();
 
     if (pProfile->mSkipTitleScreen) {
         data_ov000_020b5214.func_ov000_0206db44(0x0B);
-        data_027e0994->mpTitleScreen->func_ov025_020c4ea0(TitleScreenState_ToFileSelect);
+        pTitleScreen->func_ov025_020c4ea0(TitleScreenState_ToFileSelect);
     }
 }
 
 static GZProfile sDefaultProfile = {
-    .profileIndex = 0xF0,
     .mFasterTitleScreen = true,
     .mSkipTitleScreen = true,
     .mPositionIndex = 0,

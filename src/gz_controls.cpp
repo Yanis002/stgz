@@ -1,23 +1,8 @@
 #include "gz_controls.hpp"
+#include "common.hpp"
 
 #include <mem.h>
 #include <string.h>
-
-// from oot-gc
-char* strcat(char* dst, const char* src) {
-    const u8* p = (u8*)src - 1;
-    u8* q = (u8*)dst - 1;
-
-    while (*++q)
-        ;
-
-    q--;
-
-    while (*++q = *++p)
-        ;
-
-    return (dst);
-}
 
 ButtonCombo::ButtonCombo() {
     this->name = NULL;
