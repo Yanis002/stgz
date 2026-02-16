@@ -77,12 +77,33 @@ static void NextProfile(u32 params);
 static void LoadDefaultProfile(u32 params);
 static void SaveSettings(u32 params);
 
+// display menu
+
+static void UpdateRegs(u32 params);
+
 extern GZMenu sMainMenu;
 extern GZMenu sInventoryMenu;
 extern GZMenu sAmountsMenu;
 extern GZMenu sCollectionMenu;
 extern GZMenu sSettingsMenu;
+extern GZMenu sDebugMenu;
+extern GZMenu sRegsMenu;
 extern GZMenu sAboutMenu;
+
+// clang-format off
+
+// -- main menu items --
+
+static GZMenuItem sMainMenuItems[] = {
+    {"Inventory", NULL, 0, &sInventoryMenu, 0},
+    {"Collection", NULL, 0, &sCollectionMenu, 0},
+    {"Commands", NULL, 0, &gCommandManager.mMenu, 0},
+    {"Debug", NULL, 0, &sDebugMenu, 0},
+    {"Settings", NULL, 0, &sSettingsMenu, 0},
+    {"About", NULL, 0, &sAboutMenu, 0},
+};
+
+// -- inventory menu items --
 
 static GZMenuItem sInventoryMenuItems[] = {
     {"Whirlwind", UpdateInventory, ItemFlag_Whirlwind, NULL, 0},
@@ -105,6 +126,8 @@ static GZMenuItem sAmountsMenuItems[] = {
     {"Light Tears", UpdateAmounts, InventoryAmountType_LightTears, NULL, 0},
 };
 
+// -- collection menu items --
+
 static GZMenuItem sCollectionMenuItems[] = {
     {"Shield", UpdateInventory, ItemFlag_Shield, NULL, 0},
     {"Sword", UpdateInventory, ItemFlag_Sword, NULL, 0},
@@ -116,6 +139,8 @@ static GZMenuItem sCollectionMenuItems[] = {
     {"PanFlute", UpdateInventory, ItemFlag_PanFlute, NULL, 0},
 };
 
+// -- settings menu items --
+
 static GZMenuItem sSettingsMenuItems[] = {
     {"Prev Profile", PrevProfile, 0, NULL, 0},
     {"Next Profile", NextProfile, 0, NULL, 0},
@@ -123,19 +148,33 @@ static GZMenuItem sSettingsMenuItems[] = {
     {"Save Settings", SaveSettings, 0, NULL, 0},
 };
 
-static GZMenuItem sMainMenuItems[] = {
-    {"Inventory", NULL, 0, &sInventoryMenu, 0}, {"Collection", NULL, 0, &sCollectionMenu, 0},
-    {"Settings", NULL, 0, &sSettingsMenu, 0},   {"Commands", NULL, 0, &gCommandManager.mMenu, 0},
-    {"About", NULL, 0, &sAboutMenu, 0},
+// -- debug menu items --
+
+static GZMenuItem sDebugMenuItems[] = {
+    {"Regs", NULL, 0, &sRegsMenu, 0},
 };
 
-// pointer to the item list, number of items, pointer to the previous menu
+static GZMenuItem sRegsMenuItems[] = {
+    {"Init. State", UpdateRegs, 0xFF, NULL, 0},
+    {"Toggle BG1", UpdateRegs, 9, NULL, 0},
+    {"Toggle BG2", UpdateRegs, 10, NULL, 0},
+    {"Toggle BG3", UpdateRegs, 11, NULL, 0},
+    {"Toggle OBJ", UpdateRegs, 12, NULL, 0},
+};
+
+// -- menu list --
+
+// pointer to parent menu, pointer to items, number of items, does it require adventure mode, internal value
 GZMenu sMainMenu = {NULL, sMainMenuItems, ARRAY_LEN(sMainMenuItems), false, 0};
 GZMenu sInventoryMenu = {&sMainMenu, sInventoryMenuItems, ARRAY_LEN(sInventoryMenuItems), true, 0};
 GZMenu sAmountsMenu = {&sInventoryMenu, sAmountsMenuItems, ARRAY_LEN(sAmountsMenuItems), true, 0};
 GZMenu sCollectionMenu = {&sMainMenu, sCollectionMenuItems, ARRAY_LEN(sCollectionMenuItems), true, 0};
 GZMenu sSettingsMenu = {&sMainMenu, sSettingsMenuItems, ARRAY_LEN(sSettingsMenuItems), false, 0};
 GZMenu sAboutMenu = {&sMainMenu, NULL, 0, false, 0};
+GZMenu sDebugMenu = {&sMainMenu, sDebugMenuItems, ARRAY_LEN(sDebugMenuItems), false, 0};
+GZMenu sRegsMenu = {&sDebugMenu, sRegsMenuItems, ARRAY_LEN(sRegsMenuItems), false, 0};
+
+// clang-format on
 
 static void UpdateInventory(u32 params) {
     ItemFlag eFlag = params & 0xFF;
@@ -234,7 +273,33 @@ static void SaveSettings(u32 params) {
     gMenuManager.mState.requestRedraw = true;
 }
 
+static void UpdateRegs(u32 params) {
+    static u32 dispCnt = 0xFF;
+
+    if (params == 0xFF) {
+        REG_DISPCNT_SUB = dispCnt;
+    } else {
+        if (dispCnt == 0xFF) {
+            dispCnt = REG_DISPCNT_SUB;
+        }
+
+        u32 value = 1 << params;
+
+        if (REG_DISPCNT_SUB & value) {
+            REG_DISPCNT_SUB &= ~value;
+        } else {
+            REG_DISPCNT_SUB |= value;
+        }
+    }
+}
+
 static u32 prevDispCnt_Sub;
+static vu16 prevBG0Cnt_Sub;
+
+//! TODO: find a better way to avoid display glitches
+// for now we back up BG0 VRAM and palettes data and restore them when done
+static u8 prevBG0VRAM[0x1430]; // size of "DbgFntM.NCGR"
+static u8 prevBGPalettes[0x400]; // size of sub palettes space
 
 GZMenuManager gMenuManager;
 
@@ -560,8 +625,19 @@ void GZMenuManager::SetupScreen() {
 
 void GZMenuManager::StartDraw() {
     prevDispCnt_Sub = REG_DISPCNT_SUB;
+    prevBG0Cnt_Sub = REG_BG0CNT_SUB;
+    Copy256((void*)0x06208000, prevBG0VRAM, sizeof(prevBG0VRAM));
+    Copy256((void*)0x05000400, prevBGPalettes, sizeof(prevBGPalettes));
+
     REG_DISPCNT_SUB = (REG_DISPCNT_SUB & ~0x0400) | 0x100; // disable BG2 and make sure BG0 is enabled
-    func_0201b180(false, true); // loads the font (participate in the corruption also?)
+    REG_BG0CNT_SUB &= ~3; // make BG0 on top of everything else
+
+    if (gGZ.IsAdventureMode() && !gGZ.IsOnLand()) {
+        //! TODO: fix issue where the font is displayed on the screen
+        REG_DISPCNT_SUB &= ~0x0200; // disable BG1 for the overworld
+    }
+
+    func_0201b180(false, true); // loads the font
 }
 
 void GZMenuManager::Draw() {
@@ -572,11 +648,9 @@ void GZMenuManager::Draw() {
 
 void GZMenuManager::StopDraw() {
     REG_DISPCNT_SUB = prevDispCnt_Sub;
-
-    // good solution to fix the map but the issue is also fixable with the painting stuff
-    // might better to figure that out instead
-    // if (data_027e0994 != NULL && data_027e09a4 != NULL && gGZ.IsAdventureMode()) {
-    //     99 because we load map99.bin
-    //     data_027e0994->vfunc_38(data_027e09a4->mSceneIndex, 99, 0, 0);
-    // }
+    REG_BG0CNT_SUB = prevBG0Cnt_Sub;
+    func_02027654(prevBG0VRAM, sizeof(prevBG0VRAM));
+    Copy256(prevBG0VRAM, (void*)0x06208000, sizeof(prevBG0VRAM));
+    func_02027654(prevBGPalettes, sizeof(prevBGPalettes));
+    Copy256(prevBGPalettes, (void*)0x05000400, sizeof(prevBGPalettes));
 }
