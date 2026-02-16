@@ -85,8 +85,8 @@ static GZMenuItem sMainMenuItems[] = {
     {"Inventory", GZMenuItemType_Default, NULL, NULL, 0, &sInventoryMenu, 0},
     {"Collection", GZMenuItemType_Default, NULL, NULL, 0, &sCollectionMenu, 0},
     {"Commands", GZMenuItemType_Default, NULL, NULL, 0, &gCommandManager.mMenu, 0},
-    {"Debug", GZMenuItemType_Default, NULL, NULL, 0, &sDebugMenu, 0},
     {"Settings", GZMenuItemType_Default, NULL, NULL, 0, &sSettingsMenu, 0},
+    {"Debug", GZMenuItemType_Default, NULL, NULL, 0, &sDebugMenu, 0},
     {"About", GZMenuItemType_Default, NULL, NULL, 0, &sAboutMenu, 0},
 };
 
@@ -165,14 +165,14 @@ static GZMenuItem sRegsMenuItems[] = {
 // -- menu list --
 
 // pointer to parent menu, pointer to items, number of items, does it require adventure mode, internal value
-GZMenu sMainMenu = {NULL, sMainMenuItems, ARRAY_LEN(sMainMenuItems), false, 0};
-GZMenu sInventoryMenu = {&sMainMenu, sInventoryMenuItems, ARRAY_LEN(sInventoryMenuItems), true, 0};
-GZMenu sAmountsMenu = {&sInventoryMenu, sAmountsMenuItems, ARRAY_LEN(sAmountsMenuItems), true, 0};
-GZMenu sCollectionMenu = {&sMainMenu, sCollectionMenuItems, ARRAY_LEN(sCollectionMenuItems), true, 0};
-GZMenu sSettingsMenu = {&sMainMenu, sSettingsMenuItems, ARRAY_LEN(sSettingsMenuItems), false, 0};
-GZMenu sAboutMenu = {&sMainMenu, NULL, 0, false, 0};
-GZMenu sDebugMenu = {&sMainMenu, sDebugMenuItems, ARRAY_LEN(sDebugMenuItems), false, 0};
-GZMenu sRegsMenu = {&sDebugMenu, sRegsMenuItems, ARRAY_LEN(sRegsMenuItems), false, 0};
+GZMenu sMainMenu = {"Main Menu", NULL, sMainMenuItems, ARRAY_LEN(sMainMenuItems), false, 0};
+GZMenu sInventoryMenu = {"Inventory", &sMainMenu, sInventoryMenuItems, ARRAY_LEN(sInventoryMenuItems), true, 0};
+GZMenu sAmountsMenu = {"Inventory - Amounts", &sInventoryMenu, sAmountsMenuItems, ARRAY_LEN(sAmountsMenuItems), true, 0};
+GZMenu sCollectionMenu = {"Collection", &sMainMenu, sCollectionMenuItems, ARRAY_LEN(sCollectionMenuItems), true, 0};
+GZMenu sSettingsMenu = {"Settings", &sMainMenu, sSettingsMenuItems, ARRAY_LEN(sSettingsMenuItems), false, 0};
+GZMenu sAboutMenu = {"About", &sMainMenu, NULL, 0, false, 0};
+GZMenu sDebugMenu = {"Debug", &sMainMenu, sDebugMenuItems, ARRAY_LEN(sDebugMenuItems), false, 0};
+GZMenu sRegsMenu = {"Debug - Regs", &sDebugMenu, sRegsMenuItems, ARRAY_LEN(sRegsMenuItems), false, 0};
 
 // clang-format on
 
@@ -548,14 +548,22 @@ void GZMenuManager::SetAmountString(InventoryAmountType eType, Vec2b* pPos, bool
 void GZMenuManager::SetupScreen() {
     Vec2b elemPos = this->mState.menuPos;
 
-    // reset the top screen buffer
+    // reset the top screen buffer then send the menu item strings to the buffer
     memset(&data_0204d9d0[DRAW_TO_TOP_SCREEN], 0, sizeof(Screen));
 
-    // send the menu item strings to the buffer
+    // current menu title
+    Vec2b titlePos = elemPos;
+    const char* titleStr = "stgz - ";
+    titlePos.x += (28 - strlen(titleStr) - strlen(this->mpActiveMenu->title)) / 2;
+    titlePos.y--;
+    DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &titlePos, 0, 0, "%s%s", titleStr, this->mpActiveMenu->title);
+
+    // return element
     const char* retStr = this->IsMainMenuActive() ? "Quit" : "Back";
-    DisplayDebugText(DRAW_TO_TOP_SCREEN, &elemPos, 0, this->mState.itemIndex == 0, retStr);
+    DisplayDebugText(DRAW_TO_TOP_SCREEN, &elemPos, 0, this->mState.itemIndex == 0 ? 3 : 0, retStr);
     elemPos.y++;
 
+    // menu items
     if (this->IsCommandsMenuActive()) {
         gCommandManager.Draw(&elemPos);
     } else {
@@ -567,10 +575,11 @@ void GZMenuManager::SetupScreen() {
             extraPos.x += strlen(szName);
 
             if (pActiveMenuItem->eType == GZMenuItemType_Bool && pActiveMenuItem->checkCallback != NULL) {
-                DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &elemPos, 0, selected, "[%s]%s",
+                Vec2b boolPos = elemPos;
+                DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &boolPos, 0, selected, "[%s]%s",
                                   pActiveMenuItem->checkCallback(i) ? "x" : " ", szName);
             } else {
-                // 0 = white, 1 = red, 2 = darker red, 3 = dark green
+                // 0 = white, 1 = red, 2 = darker red, 3 = dark green, seems to be palette indices?
                 DisplayDebugText(DRAW_TO_TOP_SCREEN, &elemPos, 0, selected, szName);
             }
 
@@ -584,13 +593,14 @@ void GZMenuManager::SetupScreen() {
         }
     }
 
-    // send the arrow to the buffer
+    // current selection arrow
     Vec2b arrowPos = this->mState.menuPos;
     arrowPos.x--;
     arrowPos.y += this->mState.itemIndex;
-    DisplayDebugText(DRAW_TO_TOP_SCREEN, &arrowPos, 0, 1, ">");
+    DisplayDebugText(DRAW_TO_TOP_SCREEN, &arrowPos, 0, this->mState.itemIndex == 0 ? 3 : 1, ">");
     arrowPos.y++;
 
+    // about and settings screens (TODO: move to GZSettings)
     if (this->IsSettingsMenuActive()) {
         // special handling for the settings screen
         Vec2b settingsPos = this->mState.menuPos;
@@ -598,7 +608,7 @@ void GZMenuManager::SetupScreen() {
         DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 0, "Current Profile: %d",
                           gSettings.mProfileHeader.curProfileIndex + 1);
 
-        settingsPos.y += 15;
+        settingsPos.y = 21;
         if (gSettings.error) {
             DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 1, "Error detected: 0x%X", gSettings.errorCode);
         } else if (this->mState.successTimer > 0) {
@@ -607,7 +617,8 @@ void GZMenuManager::SetupScreen() {
     } else if (this->IsAboutMenuActive()) {
         // special handling for the about screen
         Vec2b aboutPos = this->mState.menuPos;
-        aboutPos.y = elemPos.y + 1; // start wherever the item list ended
+
+        aboutPos.y += 2;
         DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &aboutPos, 0, 0, "Code Version: %s", gBuildGitVersion);
 
         aboutPos.y++;
@@ -619,7 +630,7 @@ void GZMenuManager::SetupScreen() {
         aboutPos.y++;
         DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &aboutPos, 0, 0, "Commit Name: %s", gCommitGitString);
 
-        aboutPos.y += 15;
+        aboutPos.y = 21;
         DisplayDebugText(DRAW_TO_TOP_SCREEN, &aboutPos, 0, 0, "Licensed under GPL-3.0");
 
         aboutPos.y++;

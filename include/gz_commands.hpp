@@ -21,7 +21,7 @@ class GZCommandManager {
 
     GZCommandManager();
 
-    void CreateMenuItems();
+    void InitMenu();
     void Update();
     void Draw(Vec2b* pPos);
 };

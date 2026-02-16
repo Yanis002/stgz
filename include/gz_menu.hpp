@@ -46,6 +46,7 @@ struct GZMenuItem {
 };
 
 struct GZMenu {
+    const char* title;
     GZMenu* parent;
     GZMenuItem* entries;
     s32 mCount;

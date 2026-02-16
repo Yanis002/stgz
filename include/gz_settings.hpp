@@ -17,22 +17,26 @@ extern "C" void func_02030d58(u16 lockID); // CARD_UnlockBackup
 #define MAX_SAVE_PROFILES 8
 
 extern "C" {
+// IMPORTANT: do not reorder, retype or resize members!!! otherwise it will break older versions
+
 typedef struct GZProfileHeader {
     u8 curProfileIndex;
-} GZProfileHeader __attribute__((aligned(32)));
+} GZProfileHeader;
 
 // the save file is large so we don't care about packing stuff to save space
 typedef struct GZProfile {
     bool mFasterTitleScreen; // goes into the "touch or start to exit" state immediately
     bool mSkipTitleScreen; // same as above except it jump straight into the file select without requiring any input
-    s8 mPositionIndex;
+    s16 mPositionIndex;
     Vec3p mLandPosSlots[MAX_POS_SLOTS];
     Vec3p mTrainPosSlots[MAX_POS_SLOTS];
 } GZProfile;
 
-#define GZ_SAVE_OFFSET 0xF5000
-#define GZ_PROFILE_HEADER_OFFSET (GZ_SAVE_OFFSET)
-#define GZ_PROFILES_OFFSET (GZ_SAVE_OFFSET + sizeof(GZProfileHeader))
+// profiles first because they might take a lot of space
+#define GZ_PROFILES_OFFSET 0xF5000
+
+// profile header at the end because the space it will take shouldn't be that large
+#define GZ_PROFILE_HEADER_OFFSET 0xFFF00
 }
 
 class GZSettings {

@@ -92,10 +92,11 @@ GZCommandManager gCommandManager;
 GZCommandManager::GZCommandManager() {
     this->mpButtons = &gGZ.mButtons;
     this->mpCommands = sCommands;
-    this->CreateMenuItems();
+    this->InitMenu();
 }
 
-void GZCommandManager::CreateMenuItems() {
+void GZCommandManager::InitMenu() {
+    this->mMenu.title = "Commands";
     this->mMenu.parent = gMenuManager.GetMainMenu();
     this->mMenu.mCount = ARRAY_LEN(sCommands);
     this->mMenu.entries = new GZMenuItem[this->mMenu.mCount];
