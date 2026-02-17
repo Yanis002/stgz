@@ -97,13 +97,18 @@ struct GZMenuControls {
 };
 
 class GZMenuManager {
-  public:
+  private:
     GZMenuState mState;
     GZMenu* mpActiveMenu;
     GZMenuControls mControls;
     Input* mpButtons;
 
+  public:
     GZMenuManager();
+
+    GZMenuState* GetState() { return &this->mState; }
+
+    GZMenu* GetActiveMenu() { return this->mpActiveMenu; }
 
     bool IsActive() { return this->mState.isOpened; }
 

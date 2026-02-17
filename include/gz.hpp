@@ -27,14 +27,18 @@ struct GZState {
 };
 
 class GZ {
-  public:
+  private:
     Input mButtons;
     TouchControl* mpTouchControl;
-    OverlayIndex prevGameModeOvl;
     GZState mState;
 
-    GZ() : mpTouchControl(&data_02049b18.mUnk_06.mTouchControl), prevGameModeOvl(OverlayIndex_None) {}
+  public:
+    GZ() : mpTouchControl(&data_02049b18.mUnk_06.mTouchControl) {}
     ~GZ() {}
+
+    Input* GetInput() { return &this->mButtons; }
+
+    GZState* GetState() { return &this->mState; }
 
     void UpdateInputs() {
         // the game has functions but it's better to do it manually to make sure

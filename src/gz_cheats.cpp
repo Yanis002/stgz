@@ -34,7 +34,7 @@ GZCheatManager::GZCheatManager() {
     this->mMenu.mCount = ARRAY_LEN(sCheatMenuItems);
     this->mMenu.needSaveFile = true;
     this->mMenu.itemIndex = 0;
-    gCheatManager.SetCheatBitfieldPtr(gSettings.mProfiles[gSettings.mProfileHeader.curProfileIndex].mCheatBitfield);
+    gCheatManager.SetCheatBitfieldPtr(gSettings.GetProfile()->mCheatBitfield);
 }
 
 void GZCheatManager::SetCheatBitfieldPtr(u32* pBitfield) { this->mpCheatBitfield = pBitfield; }

@@ -36,14 +36,16 @@ static GZCmdItem sCommands[] = {
 static void ExecuteLevitate(u32 params) { data_027e0478.mPlayer.mVel.y = FLOAT_TO_Q20(0.334375f); }
 
 static void ExecutePause(u32 params) {
-    if (!gGZ.mState.isPaused) {
-        gGZ.mState.isPaused = true;
+    GZState* pState = gGZ.GetState();
+
+    if (!pState->isPaused) {
+        pState->isPaused = true;
     } else {
-        gGZ.mState.isPaused = false;
+        pState->isPaused = false;
     }
 }
 
-static void ExecuteFrameAdvance(u32 params) { gGZ.mState.requestedFrames++; }
+static void ExecuteFrameAdvance(u32 params) { gGZ.GetState()->requestedFrames++; }
 
 static void ExecutePrevPosition(u32 params) {
     GZProfile* pProfile = gSettings.GetProfile();
@@ -88,7 +90,7 @@ static void ExecuteTurbo(u32 params) {}
 GZCommandManager gCommandManager;
 
 GZCommandManager::GZCommandManager() {
-    this->mpButtons = &gGZ.mButtons;
+    this->mpButtons = gGZ.GetInput();
     this->mpCommands = sCommands;
     this->InitMenu();
 }
@@ -112,7 +114,7 @@ void GZCommandManager::InitMenu() {
 }
 
 void GZCommandManager::Update() {
-    if (this->mpCommands == NULL || gMenuManager.mState.isOpened) {
+    if (this->mpCommands == NULL || gMenuManager.GetState()->isOpened) {
         return;
     }
 
@@ -132,7 +134,7 @@ void GZCommandManager::Draw(Vec2b* pPos) {
 
     for (s16 i = 0; i < ARRAY_LEN(sCommands); i++) {
         GZCmdItem* pCmd = &this->mpCommands[i];
-        bool selected = i + 1 == gMenuManager.mState.itemIndex;
+        bool selected = i + 1 == gMenuManager.GetState()->itemIndex;
 
         pCmd->btnCombo.SetComboString();
         DisplayDebugText(DRAW_TO_TOP_SCREEN, &elemPos, 0, selected, pCmd->btnCombo.fullName);

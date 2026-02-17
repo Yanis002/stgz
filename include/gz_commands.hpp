@@ -14,12 +14,15 @@ struct GZCmdItem {
 };
 
 class GZCommandManager {
-  public:
+  private:
     Input* mpButtons;
     GZCmdItem* mpCommands;
     GZMenu mMenu;
 
+  public:
     GZCommandManager();
+
+    GZMenu* GetMenu() { return &this->mMenu; }
 
     void InitMenu();
     void Update();

@@ -41,7 +41,7 @@ typedef struct GZProfile {
 }
 
 class GZSettings {
-  public:
+  private:
     GZProfileHeader mProfileHeader;
     GZProfile mProfiles[MAX_SAVE_PROFILES];
     GZMenu mMenu;
@@ -50,12 +50,24 @@ class GZSettings {
     int errorCode;
     u8 mSaveIndex; // save file to use (intiially meant for file select quick boot, unused for now)
 
+  public:
     GZSettings();
     ~GZSettings();
 
-    GZProfile* GetProfile() { return &this->mProfiles[this->mProfileHeader.curProfileIndex]; }
+    GZProfileHeader* GetProfileHeader() { return &this->mProfileHeader; }
 
-    bool IsStartUp() { return gGZ.prevGameModeOvl == OverlayIndex_StartUp; }
+    u16 GetLockID() { return this->lockID; }
+
+    bool GetError() { return this->error; }
+    void SetError(bool error) { this->error = error; }
+
+    int GetErrorCode() { return this->errorCode; }
+    void SetErrorCode(int code) { this->errorCode = code; }
+
+    int GetProfileCount() { return ARRAY_LEN(this->mProfiles); }
+    GZProfile* GetProfiles() { return this->mProfiles; }
+    GZProfile* GetProfile(u8 index) { return &this->mProfiles[index]; }
+    GZProfile* GetProfile() { return this->GetProfile(this->mProfileHeader.curProfileIndex); }
 
     Vec3p* GetPosArray() {
         GZProfile* pProfile = this->GetProfile();
@@ -84,21 +96,22 @@ extern GZSettings gSettings;
 // automatic lock and unlock for convenience
 struct CardLock {
     CardLock() {
-        if (gSettings.lockID != -3) {
-            func_02030d48(gSettings.lockID);
+        if (gSettings.GetLockID() != -3) {
+            func_02030d48(gSettings.GetLockID());
 
             if (func_020313b4(0x1402) == 0) {
-                gSettings.error = true;
+                gSettings.SetError(true);
             }
         }
     }
 
     ~CardLock() {
-        gSettings.errorCode = func_02030cfc();
-        gSettings.error = gSettings.errorCode != 0;
+        int errorCode = func_02030cfc();
+        gSettings.SetErrorCode(errorCode);
+        gSettings.SetError(errorCode != 0);
 
-        if (gSettings.lockID != -3) {
-            func_02030d58(gSettings.lockID);
+        if (gSettings.GetLockID() != -3) {
+            func_02030d58(gSettings.GetLockID());
         }
     }
 };

@@ -34,6 +34,8 @@ struct SomeSaveFileStruct {
 };
 
 void CustomGame::ExecutePause() {
+    GZState* pState = gGZ.GetState();
+
     data_02049b18.func_02013840(data_0204a110.mUnk_004, data_0204a110.func_02019300(data_0204a110.mUnk_DF8));
 
     if (this->mFrameCounter + data_0204a110.mUnk_004 - (s32)REG_FRAME_COUNTER > 1) {
@@ -52,32 +54,31 @@ void CustomGame::ExecutePause() {
 
     func_020132c8();
 
-    if (gGZ.mState.doRNGUpdatesDuringPause && !gGZ.mState.isRNGPaused) {
+    if (pState->doRNGUpdatesDuringPause && !pState->isRNGPaused) {
         gRandom.UpdateRandomValue();
     }
 }
 
 void CustomGame::Run() {
-    gGZ.prevGameModeOvl = OverlayIndex_StartUp;
-
     do {
+        GZState* pState = gGZ.GetState();
+
         gGZ.Update();
-        gMenuManager.Update();
 
         // stgz: pause and frame advance block
         {
             u32 curFrameCount = REG_FRAME_COUNTER;
 
             // if we have game frames to draw and it's not pausing enable the pause then decrease the queue value
-            if (gGZ.mState.requestedFrames > 0) {
-                if (!gGZ.mState.isPaused) {
-                    gGZ.mState.isPaused = true;
+            if (pState->requestedFrames > 0) {
+                if (!pState->isPaused) {
+                    pState->isPaused = true;
                 }
 
-                gGZ.mState.requestedFrames--;
+                pState->requestedFrames--;
             } else {
                 // if it's paused and there is no frames left to execute then do the pause
-                if (gGZ.mState.isPaused) {
+                if (pState->isPaused) {
                     REG_FRAME_COUNTER = curFrameCount; // freeze frame count
                     gGZ.OnGameModeUpdate();
                     this->ExecutePause(); // execute the necessary code to avoid crashes
@@ -106,7 +107,6 @@ void CustomGame::Run() {
                 this->createCallback = NULL;
                 this->mpCurrentGameMode->vfunc_08();
                 this->mpSaveFile = NULL;
-                gGZ.prevGameModeOvl = gOverlayManager.mLoadedOverlays[OverlaySlot_4];
             }
 
             data_0204999c.func_02013070();
@@ -131,7 +131,7 @@ void CustomGame::Run() {
             data_0204a110.func_02019300(data_0204a110.mUnk_DF8);
 
             // stgz: stop updating the seed each frame
-            if (!gGZ.mState.isRNGPaused) {
+            if (!pState->isRNGPaused) {
                 gRandom.UpdateRandomValue();
             }
 

@@ -85,7 +85,7 @@ static GZMenuItem sMainMenuItems[] = {
     {"Cheats", GZMenuItemType_Default, NULL, NULL, 0, gCheatManager.GetMenu(), 0},
     {"Inventory", GZMenuItemType_Default, NULL, NULL, 0, &sInventoryMenu, 0},
     {"Collection", GZMenuItemType_Default, NULL, NULL, 0, &sCollectionMenu, 0},
-    {"Commands", GZMenuItemType_Default, NULL, NULL, 0, &gCommandManager.mMenu, 0},
+    {"Commands", GZMenuItemType_Default, NULL, NULL, 0, gCommandManager.GetMenu(), 0},
     {"Settings", GZMenuItemType_Default, NULL, NULL, 0, gSettings.GetMenu(), 0},
     {"Debug", GZMenuItemType_Default, NULL, NULL, 0, &sDebugMenu, 0},
     {"About", GZMenuItemType_Default, NULL, NULL, 0, &sAboutMenu, 0},
@@ -181,7 +181,7 @@ static bool HasObtainedItem(int itemIndex) {
         return false;
     }
 
-    return GET_FLAG(data_027e0ce0->mUnk_28->mUnk_08, gMenuManager.mpActiveMenu->entries[itemIndex].params & 0xFF);
+    return GET_FLAG(data_027e0ce0->mUnk_28->mUnk_08, gMenuManager.GetActiveMenu()->entries[itemIndex].params & 0xFF);
 }
 
 static void UpdateAmounts(u32 params) {
@@ -245,7 +245,7 @@ static void UpdateRegs(u32 params) {
 }
 
 static bool IsLayerEnabled(int itemIndex) {
-    GZMenuItem* pActiveItem = &gMenuManager.mpActiveMenu->entries[itemIndex];
+    GZMenuItem* pActiveItem = &gMenuManager.GetActiveMenu()->entries[itemIndex];
     u32 value = 1 << (pActiveItem->params & 0x0F);
     return REG_DISPCNT_SUB & value;
 }
@@ -283,7 +283,7 @@ void GZMenuItem::Draw(Vec2b* pPos, s16 index, bool selected, bool needSaveFile) 
 
 void GZMenu::Draw(Vec2b* pPos) {
     for (s16 i = 0; i < this->mCount; i++) {
-        this->entries[i].Draw(pPos, i, i + 1 == gMenuManager.mState.itemIndex, this->needSaveFile);
+        this->entries[i].Draw(pPos, i, i + 1 == gMenuManager.GetState()->itemIndex, this->needSaveFile);
         pPos->y++;
     }
 }
@@ -291,7 +291,7 @@ void GZMenu::Draw(Vec2b* pPos) {
 GZMenuManager::GZMenuManager() {
     this->mState.Init();
     this->mpActiveMenu = &sMainMenu;
-    this->mpButtons = &gGZ.mButtons;
+    this->mpButtons = gGZ.GetInput();
     memset(&data_0204d9d0[DRAW_TO_TOP_SCREEN], 0, sizeof(Screen));
 }
 
@@ -303,7 +303,7 @@ bool GZMenuManager::IsInventoryMenuActive() { return this->mpActiveMenu == &sInv
 
 bool GZMenuManager::IsAmountsMenuActive() { return this->mpActiveMenu == &sAmountsMenu; }
 
-bool GZMenuManager::IsCommandsMenuActive() { return this->mpActiveMenu == &gCommandManager.mMenu; }
+bool GZMenuManager::IsCommandsMenuActive() { return this->mpActiveMenu == gCommandManager.GetMenu(); }
 
 bool GZMenuManager::IsSettingsMenuActive() { return this->mpActiveMenu == gSettings.GetMenu(); }
 

@@ -20,33 +20,37 @@ static inline void WriteSaveImpl(u32 offset, void* buf, u32 size, void* param4, 
 }
 
 static void PrevProfile(u32 params) {
-    if (gSettings.mProfileHeader.curProfileIndex - 1 > 0) {
-        gSettings.mProfileHeader.curProfileIndex--;
+    GZProfileHeader* pProfileHeader = gSettings.GetProfileHeader();
+
+    if (pProfileHeader->curProfileIndex - 1 > 0) {
+        pProfileHeader->curProfileIndex--;
     } else {
-        gSettings.mProfileHeader.curProfileIndex = 0;
+        pProfileHeader->curProfileIndex = 0;
     }
 
-    gCheatManager.SetCheatBitfieldPtr(gSettings.mProfiles[gSettings.mProfileHeader.curProfileIndex].mCheatBitfield);
+    gCheatManager.SetCheatBitfieldPtr(gSettings.GetProfile()->mCheatBitfield);
 }
 
 static void NextProfile(u32 params) {
-    gSettings.mProfileHeader.curProfileIndex++;
+    GZProfileHeader* pProfileHeader = gSettings.GetProfileHeader();
 
-    if (gSettings.mProfileHeader.curProfileIndex >= ARRAY_LEN(gSettings.mProfiles)) {
-        gSettings.mProfileHeader.curProfileIndex = ARRAY_LEN(gSettings.mProfiles) - 1;
+    pProfileHeader->curProfileIndex++;
+
+    if (pProfileHeader->curProfileIndex >= gSettings.GetProfileCount()) {
+        pProfileHeader->curProfileIndex = gSettings.GetProfileCount() - 1;
     }
 
-    gCheatManager.SetCheatBitfieldPtr(gSettings.mProfiles[gSettings.mProfileHeader.curProfileIndex].mCheatBitfield);
+    gCheatManager.SetCheatBitfieldPtr(gSettings.GetProfile()->mCheatBitfield);
 }
 
 static void LoadDefaultProfile(u32 params) {
     gSettings.LoadDefaultProfile();
-    gMenuManager.mState.successTimer = 90;
+    gMenuManager.GetState()->successTimer = 90;
 }
 
 static void SaveSettings(u32 params) {
     gSettings.WriteSave();
-    gMenuManager.mState.successTimer = 90;
+    gMenuManager.GetState()->successTimer = 90;
 }
 
 static GZMenuItem sSettingsMenuItems[] = {
@@ -78,16 +82,16 @@ void GZSettings::Update() { this->ProcessTitleScreen(); }
 void GZSettings::Draw(Vec2b* pPos) {
     this->mMenu.Draw(pPos);
 
-    Vec2b settingsPos = gMenuManager.mState.menuPos;
+    Vec2b settingsPos = gMenuManager.GetState()->menuPos;
     settingsPos.y = pPos->y + 1;
     DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 0, "Current Profile: %d",
-                      gSettings.mProfileHeader.curProfileIndex + 1);
+                      gSettings.GetProfileHeader()->curProfileIndex + 1);
 
     settingsPos.y = 21;
-    if (gSettings.error) {
-        DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 1, "Error detected: 0x%X", gSettings.errorCode);
-    } else if (gMenuManager.mState.successTimer > 0) {
-        DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 0, "Success!", gSettings.errorCode);
+    if (gSettings.GetError()) {
+        DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 1, "Error detected: 0x%X", gSettings.GetErrorCode());
+    } else if (gMenuManager.GetState()->successTimer > 0) {
+        DisplayDebugText(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 0, "Success!");
     }
 }
 
