@@ -1,6 +1,7 @@
 #include "gz_menu.hpp"
 #include "build.hpp"
 #include "gz.hpp"
+#include "gz_cheats.hpp"
 #include "gz_commands.hpp"
 #include "gz_settings.hpp"
 
@@ -16,6 +17,12 @@
 /*
 Layout:
 - Main Menu
+    - Cheats
+        - Health
+        - Rupees
+        - Arrows
+        - Bombs
+        - Postcards
     - Inventory
         - Whirlwind
         - Boomerang
@@ -82,6 +89,7 @@ extern GZMenu sAboutMenu;
 // -- main menu items --
 
 static GZMenuItem sMainMenuItems[] = {
+    {"Cheats", GZMenuItemType_Default, NULL, NULL, 0, gCheatManager.GetMenu(), 0},
     {"Inventory", GZMenuItemType_Default, NULL, NULL, 0, &sInventoryMenu, 0},
     {"Collection", GZMenuItemType_Default, NULL, NULL, 0, &sCollectionMenu, 0},
     {"Commands", GZMenuItemType_Default, NULL, NULL, 0, &gCommandManager.mMenu, 0},
@@ -244,6 +252,8 @@ static void PrevProfile(u32 params) {
     } else {
         gSettings.mProfileHeader.curProfileIndex = 0;
     }
+
+    gCheatManager.SetCheatBitfieldPtr(gSettings.mProfiles[gSettings.mProfileHeader.curProfileIndex].mCheatBitfield);
 }
 
 static void NextProfile(u32 params) {
@@ -252,6 +262,8 @@ static void NextProfile(u32 params) {
     if (gSettings.mProfileHeader.curProfileIndex >= ARRAY_LEN(gSettings.mProfiles)) {
         gSettings.mProfileHeader.curProfileIndex = ARRAY_LEN(gSettings.mProfiles) - 1;
     }
+
+    gCheatManager.SetCheatBitfieldPtr(gSettings.mProfiles[gSettings.mProfileHeader.curProfileIndex].mCheatBitfield);
 }
 
 static void LoadDefaultProfile(u32 params) {

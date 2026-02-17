@@ -1,5 +1,6 @@
 #include "gz.hpp"
 #include "build.hpp"
+#include "gz_cheats.hpp"
 #include "gz_commands.hpp"
 #include "gz_settings.hpp"
 
@@ -18,4 +19,5 @@ void GZ::OnGameModeInit() {}
 void GZ::OnGameModeUpdate() {
     gCommandManager.Update();
     gSettings.Update();
+    gCheatManager.Update();
 }

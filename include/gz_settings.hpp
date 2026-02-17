@@ -30,6 +30,7 @@ typedef struct GZProfile {
     s16 mPositionIndex;
     Vec3p mLandPosSlots[MAX_POS_SLOTS];
     Vec3p mTrainPosSlots[MAX_POS_SLOTS];
+    u32 mCheatBitfield[4]; // way more than enough
 } GZProfile;
 
 // profiles first because they might take a lot of space
