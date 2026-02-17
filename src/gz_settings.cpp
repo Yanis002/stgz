@@ -1,4 +1,5 @@
 #include "gz_settings.hpp"
+#include "gz_cheats.hpp"
 #include "gz_menu.hpp"
 
 #include <Game/Game.hpp>
@@ -10,17 +11,61 @@ extern "C" u16 func_02026738(); // OS_GetLockID
 extern "C" void func_020312b8(u32 offset, void* buf, u32 size, void*, void*, u32, u32, u32,
                               u32); // CARD_ReadWriteBackupAsync
 
-inline void ReadSaveImpl(u32 offset, void* buf, u32 size, void* param4, void* param5) {
+static inline void ReadSaveImpl(u32 offset, void* buf, u32 size, void* param4, void* param5) {
     func_020312b8(offset, buf, size, param4, param5, 1, 6, 1, 0);
 }
 
-inline void WriteSaveImpl(u32 offset, void* buf, u32 size, void* param4, void* param5) {
+static inline void WriteSaveImpl(u32 offset, void* buf, u32 size, void* param4, void* param5) {
     func_020312b8((u32)buf, (void*)offset, size, param4, param5, 1, 7, 10, 2);
 }
+
+static void PrevProfile(u32 params) {
+    if (gSettings.mProfileHeader.curProfileIndex - 1 > 0) {
+        gSettings.mProfileHeader.curProfileIndex--;
+    } else {
+        gSettings.mProfileHeader.curProfileIndex = 0;
+    }
+
+    gCheatManager.SetCheatBitfieldPtr(gSettings.mProfiles[gSettings.mProfileHeader.curProfileIndex].mCheatBitfield);
+}
+
+static void NextProfile(u32 params) {
+    gSettings.mProfileHeader.curProfileIndex++;
+
+    if (gSettings.mProfileHeader.curProfileIndex >= ARRAY_LEN(gSettings.mProfiles)) {
+        gSettings.mProfileHeader.curProfileIndex = ARRAY_LEN(gSettings.mProfiles) - 1;
+    }
+
+    gCheatManager.SetCheatBitfieldPtr(gSettings.mProfiles[gSettings.mProfileHeader.curProfileIndex].mCheatBitfield);
+}
+
+static void LoadDefaultProfile(u32 params) {
+    gSettings.LoadDefaultProfile();
+    gMenuManager.mState.successTimer = 90;
+}
+
+static void SaveSettings(u32 params) {
+    gSettings.WriteSave();
+    gMenuManager.mState.successTimer = 90;
+}
+
+static GZMenuItem sSettingsMenuItems[] = {
+    {"Prev Profile", GZMenuItemType_Default, NULL, PrevProfile, 0, NULL, 0},
+    {"Next Profile", GZMenuItemType_Default, NULL, NextProfile, 0, NULL, 0},
+    {"Load Default Profile", GZMenuItemType_Default, NULL, LoadDefaultProfile, 0, NULL, 0},
+    {"Save Settings", GZMenuItemType_Default, NULL, SaveSettings, 0, NULL, 0},
+};
 
 GZSettings gSettings;
 
 GZSettings::GZSettings() {
+    this->mMenu.title = "Settings";
+    this->mMenu.parent = gMenuManager.GetMainMenu();
+    this->mMenu.entries = sSettingsMenuItems;
+    this->mMenu.mCount = ARRAY_LEN(sSettingsMenuItems);
+    this->mMenu.needSaveFile = true;
+    this->mMenu.itemIndex = 0;
+
     this->mSaveIndex = 0;
     this->InitSave();
     this->ReadSave();
@@ -29,6 +74,22 @@ GZSettings::GZSettings() {
 GZSettings::~GZSettings() {}
 
 void GZSettings::Update() { this->ProcessTitleScreen(); }
+
+void GZSettings::Draw(Vec2b* pPos) {
+    this->mMenu.Draw(pPos);
+
+    Vec2b settingsPos = gMenuManager.mState.menuPos;
+    settingsPos.y = pPos->y + 1;
+    DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 0, "Current Profile: %d",
+                      gSettings.mProfileHeader.curProfileIndex + 1);
+
+    settingsPos.y = 21;
+    if (gSettings.error) {
+        DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 1, "Error detected: 0x%X", gSettings.errorCode);
+    } else if (gMenuManager.mState.successTimer > 0) {
+        DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 0, "Success!", gSettings.errorCode);
+    }
+}
 
 void GZSettings::ProcessTitleScreen() {
     GZProfile* pProfile = this->GetProfile();

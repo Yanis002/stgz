@@ -33,6 +33,7 @@ GZCheatManager::GZCheatManager() {
     this->mMenu.entries = sCheatMenuItems;
     this->mMenu.mCount = ARRAY_LEN(sCheatMenuItems);
     this->mMenu.needSaveFile = true;
+    this->mMenu.itemIndex = 0;
     gCheatManager.SetCheatBitfieldPtr(gSettings.mProfiles[gSettings.mProfileHeader.curProfileIndex].mCheatBitfield);
 }
 
@@ -76,7 +77,7 @@ void GZCheatManager::Update() {
         }
     }
 
-    if (data_ov024_020d86b0 != NULL) {
+    if (gGZ.IsAdventureMode() && data_ov024_020d86b0 != NULL) {
         if (this->Check(GZCheat_Postcards)) {
             data_ov024_020d86b0->mNumPostcards = 127;
         }

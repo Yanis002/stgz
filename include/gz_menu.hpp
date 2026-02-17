@@ -43,6 +43,8 @@ struct GZMenuItem {
 
     // internal
     int value;
+
+    void Draw(Vec2b* pPos, s16 index, bool selected, bool needSaveFile);
 };
 
 struct GZMenu {
@@ -54,6 +56,8 @@ struct GZMenu {
 
     // internal
     s16 itemIndex;
+
+    void Draw(Vec2b* pPos);
 };
 
 struct GZMenuState {
@@ -126,7 +130,7 @@ class GZMenuManager {
     void Update(); // update routine
     void SetupScreen(); // creates the strings etc
     void StartDraw(); // prepares the game to draw the menu
-    void Draw(); // execute the draw
+    void CopyScreen(); // execute the draw
     void StopDraw(); // quit and restore state
 };
 

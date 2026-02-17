@@ -44,6 +44,7 @@ class GZSettings {
   public:
     GZProfileHeader mProfileHeader;
     GZProfile mProfiles[MAX_SAVE_PROFILES];
+    GZMenu mMenu;
     u16 lockID;
     bool error;
     int errorCode;
@@ -66,7 +67,10 @@ class GZSettings {
         return pProfile->mTrainPosSlots;
     }
 
+    GZMenu* GetMenu() { return &this->mMenu; }
+
     void Update();
+    void Draw(Vec2b* pPos);
     void ProcessTitleScreen();
     void LoadDefaultProfile();
     void ResetAllProfiles();

@@ -1,5 +1,6 @@
 #include "gz_menu.hpp"
 #include "build.hpp"
+#include "common.hpp"
 #include "gz.hpp"
 #include "gz_cheats.hpp"
 #include "gz_commands.hpp"
@@ -68,18 +69,10 @@ struct Screen {
 };
 extern Screen data_0204d9d0[2];
 
-extern "C" void DisplayDebugText(int, void*, int, int, const char*);
-extern "C" void DisplayDebugTextF(int, void*, int, int, const char*, ...);
-extern "C" void GXS_SetGraphicsMode(int);
-extern "C" void func_0201b180(bool, bool);
-extern "C" void func_02027654(void*, int); // DC_FlushRange
-extern "C" void func_020252ec(void*, int, int); // GX0_LoadBG0Scr
-
 extern GZMenu sMainMenu;
 extern GZMenu sInventoryMenu;
 extern GZMenu sAmountsMenu;
 extern GZMenu sCollectionMenu;
-extern GZMenu sSettingsMenu;
 extern GZMenu sDebugMenu;
 extern GZMenu sRegsMenu;
 extern GZMenu sAboutMenu;
@@ -93,7 +86,7 @@ static GZMenuItem sMainMenuItems[] = {
     {"Inventory", GZMenuItemType_Default, NULL, NULL, 0, &sInventoryMenu, 0},
     {"Collection", GZMenuItemType_Default, NULL, NULL, 0, &sCollectionMenu, 0},
     {"Commands", GZMenuItemType_Default, NULL, NULL, 0, &gCommandManager.mMenu, 0},
-    {"Settings", GZMenuItemType_Default, NULL, NULL, 0, &sSettingsMenu, 0},
+    {"Settings", GZMenuItemType_Default, NULL, NULL, 0, gSettings.GetMenu(), 0},
     {"Debug", GZMenuItemType_Default, NULL, NULL, 0, &sDebugMenu, 0},
     {"About", GZMenuItemType_Default, NULL, NULL, 0, &sAboutMenu, 0},
 };
@@ -139,20 +132,6 @@ static GZMenuItem sCollectionMenuItems[] = {
     {"Pan Flute", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_PanFlute, NULL, 0},
 };
 
-// -- settings menu items --
-
-static void PrevProfile(u32 params);
-static void NextProfile(u32 params);
-static void LoadDefaultProfile(u32 params);
-static void SaveSettings(u32 params);
-
-static GZMenuItem sSettingsMenuItems[] = {
-    {"Prev Profile", GZMenuItemType_Default, NULL, PrevProfile, 0, NULL, 0},
-    {"Next Profile", GZMenuItemType_Default, NULL, NextProfile, 0, NULL, 0},
-    {"Load Default Profile", GZMenuItemType_Default, NULL, LoadDefaultProfile, 0, NULL, 0},
-    {"Save Settings", GZMenuItemType_Default, NULL, SaveSettings, 0, NULL, 0},
-};
-
 // -- debug menu items --
 
 static GZMenuItem sDebugMenuItems[] = {
@@ -177,7 +156,6 @@ GZMenu sMainMenu = {"Main Menu", NULL, sMainMenuItems, ARRAY_LEN(sMainMenuItems)
 GZMenu sInventoryMenu = {"Inventory", &sMainMenu, sInventoryMenuItems, ARRAY_LEN(sInventoryMenuItems), true, 0};
 GZMenu sAmountsMenu = {"Inventory - Amounts", &sInventoryMenu, sAmountsMenuItems, ARRAY_LEN(sAmountsMenuItems), true, 0};
 GZMenu sCollectionMenu = {"Collection", &sMainMenu, sCollectionMenuItems, ARRAY_LEN(sCollectionMenuItems), true, 0};
-GZMenu sSettingsMenu = {"Settings", &sMainMenu, sSettingsMenuItems, ARRAY_LEN(sSettingsMenuItems), false, 0};
 GZMenu sAboutMenu = {"About", &sMainMenu, NULL, 0, false, 0};
 GZMenu sDebugMenu = {"Debug", &sMainMenu, sDebugMenuItems, ARRAY_LEN(sDebugMenuItems), false, 0};
 GZMenu sRegsMenu = {"Debug - Regs", &sDebugMenu, sRegsMenuItems, ARRAY_LEN(sRegsMenuItems), false, 0};
@@ -246,36 +224,6 @@ static void UpdateAmounts(u32 params) {
     }
 }
 
-static void PrevProfile(u32 params) {
-    if (gSettings.mProfileHeader.curProfileIndex - 1 > 0) {
-        gSettings.mProfileHeader.curProfileIndex--;
-    } else {
-        gSettings.mProfileHeader.curProfileIndex = 0;
-    }
-
-    gCheatManager.SetCheatBitfieldPtr(gSettings.mProfiles[gSettings.mProfileHeader.curProfileIndex].mCheatBitfield);
-}
-
-static void NextProfile(u32 params) {
-    gSettings.mProfileHeader.curProfileIndex++;
-
-    if (gSettings.mProfileHeader.curProfileIndex >= ARRAY_LEN(gSettings.mProfiles)) {
-        gSettings.mProfileHeader.curProfileIndex = ARRAY_LEN(gSettings.mProfiles) - 1;
-    }
-
-    gCheatManager.SetCheatBitfieldPtr(gSettings.mProfiles[gSettings.mProfileHeader.curProfileIndex].mCheatBitfield);
-}
-
-static void LoadDefaultProfile(u32 params) {
-    gSettings.LoadDefaultProfile();
-    gMenuManager.mState.successTimer = 90;
-}
-
-static void SaveSettings(u32 params) {
-    gSettings.WriteSave();
-    gMenuManager.mState.successTimer = 90;
-}
-
 static void UpdateRegs(u32 params) {
     static u32 dispCnt = 0xFF;
 
@@ -312,6 +260,34 @@ static u8 prevBGPalettes[0x400]; // size of sub palettes space
 
 GZMenuManager gMenuManager;
 
+void GZMenuItem::Draw(Vec2b* pPos, s16 index, bool selected, bool needSaveFile) {
+    const char* szName = this->name;
+    Vec2b extraPos = *pPos;
+    extraPos.x += strlen(szName);
+
+    if (this->eType == GZMenuItemType_Bool && this->checkCallback != NULL) {
+        Vec2b boolPos = *pPos;
+        DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &boolPos, 0, selected, "[%s]%s", this->checkCallback(index) ? "x" : " ",
+                          szName);
+    } else {
+        // 0 = white, 1 = red, 2 = darker red, 3 = dark green, seems to be palette indices?
+        DisplayDebugText(DRAW_TO_TOP_SCREEN, pPos, 0, selected, szName);
+    }
+
+    if (gMenuManager.IsAmountsMenuActive()) {
+        gMenuManager.SetAmountString(this->params & 0xFF, &extraPos, selected);
+    } else if (needSaveFile && !gGZ.IsAdventureMode()) {
+        DisplayDebugText(DRAW_TO_TOP_SCREEN, &extraPos, 0, selected, " (disabled)");
+    }
+}
+
+void GZMenu::Draw(Vec2b* pPos) {
+    for (s16 i = 0; i < this->mCount; i++) {
+        this->entries[i].Draw(pPos, i, i + 1 == gMenuManager.mState.itemIndex, this->needSaveFile);
+        pPos->y++;
+    }
+}
+
 GZMenuManager::GZMenuManager() {
     this->mState.Init();
     this->mpActiveMenu = &sMainMenu;
@@ -329,7 +305,7 @@ bool GZMenuManager::IsAmountsMenuActive() { return this->mpActiveMenu == &sAmoun
 
 bool GZMenuManager::IsCommandsMenuActive() { return this->mpActiveMenu == &gCommandManager.mMenu; }
 
-bool GZMenuManager::IsSettingsMenuActive() { return this->mpActiveMenu == &sSettingsMenu; }
+bool GZMenuManager::IsSettingsMenuActive() { return this->mpActiveMenu == gSettings.GetMenu(); }
 
 bool GZMenuManager::IsAboutMenuActive() { return this->mpActiveMenu == &sAboutMenu; }
 
@@ -495,7 +471,7 @@ void GZMenuManager::Update() {
         // redraw the menu if necessary
         this->mState.requestRedraw = false;
         this->SetupScreen();
-        this->Draw();
+        this->CopyScreen();
     }
 }
 
@@ -571,31 +547,10 @@ void GZMenuManager::SetupScreen() {
     // menu items
     if (this->IsCommandsMenuActive()) {
         gCommandManager.Draw(&elemPos);
+    } else if (this->IsSettingsMenuActive()) {
+        gSettings.Draw(&elemPos);
     } else {
-        for (s16 i = 0; i < this->mpActiveMenu->mCount; i++) {
-            GZMenuItem* pActiveMenuItem = &this->mpActiveMenu->entries[i];
-            const char* szName = pActiveMenuItem->name;
-            Vec2b extraPos = elemPos;
-            bool selected = i + 1 == this->mState.itemIndex;
-            extraPos.x += strlen(szName);
-
-            if (pActiveMenuItem->eType == GZMenuItemType_Bool && pActiveMenuItem->checkCallback != NULL) {
-                Vec2b boolPos = elemPos;
-                DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &boolPos, 0, selected, "[%s]%s",
-                                  pActiveMenuItem->checkCallback(i) ? "x" : " ", szName);
-            } else {
-                // 0 = white, 1 = red, 2 = darker red, 3 = dark green, seems to be palette indices?
-                DisplayDebugText(DRAW_TO_TOP_SCREEN, &elemPos, 0, selected, szName);
-            }
-
-            if (this->IsAmountsMenuActive()) {
-                this->SetAmountString(pActiveMenuItem->params & 0xFF, &extraPos, selected);
-            } else if (this->mpActiveMenu->needSaveFile && !gGZ.IsAdventureMode()) {
-                DisplayDebugText(DRAW_TO_TOP_SCREEN, &extraPos, 0, selected, " (disabled)");
-            }
-
-            elemPos.y++;
-        }
+        this->mpActiveMenu->Draw(&elemPos);
     }
 
     // current selection arrow
@@ -605,21 +560,8 @@ void GZMenuManager::SetupScreen() {
     DisplayDebugText(DRAW_TO_TOP_SCREEN, &arrowPos, 0, this->mState.itemIndex == 0 ? 3 : 1, ">");
     arrowPos.y++;
 
-    // about and settings screens (TODO: move to GZSettings)
-    if (this->IsSettingsMenuActive()) {
-        // special handling for the settings screen
-        Vec2b settingsPos = this->mState.menuPos;
-        settingsPos.y = elemPos.y + 1;
-        DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 0, "Current Profile: %d",
-                          gSettings.mProfileHeader.curProfileIndex + 1);
-
-        settingsPos.y = 21;
-        if (gSettings.error) {
-            DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 1, "Error detected: 0x%X", gSettings.errorCode);
-        } else if (this->mState.successTimer > 0) {
-            DisplayDebugTextF(DRAW_TO_TOP_SCREEN, &settingsPos, 0, 0, "Success!", gSettings.errorCode);
-        }
-    } else if (this->IsAboutMenuActive()) {
+    // about screen
+    if (this->IsAboutMenuActive()) {
         // special handling for the about screen
         Vec2b aboutPos = this->mState.menuPos;
 
@@ -660,7 +602,7 @@ void GZMenuManager::StartDraw() {
     func_0201b180(false, true); // loads the font
 }
 
-void GZMenuManager::Draw() {
+void GZMenuManager::CopyScreen() {
     // copy screen
     func_02027654(data_0204d9d0[DRAW_TO_TOP_SCREEN].data, sizeof(data_0204d9d0[DRAW_TO_TOP_SCREEN].data));
     func_020252ec(data_0204d9d0[DRAW_TO_TOP_SCREEN].data, 0, sizeof(data_0204d9d0[DRAW_TO_TOP_SCREEN].data));

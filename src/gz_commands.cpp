@@ -1,4 +1,5 @@
 #include "gz_commands.hpp"
+#include "common.hpp"
 #include "gz.hpp"
 #include "gz_menu.hpp"
 #include "gz_settings.hpp"
@@ -8,9 +9,6 @@
 #include <nitro/math.h>
 #include <regs.h>
 #include <string.h>
-
-extern "C" void DisplayDebugText(int, void*, int, int, const char*);
-extern "C" void DisplayDebugTextF(int, void*, int, int, const char*, ...);
 
 static void ExecuteLevitate(u32 params);
 static void ExecutePause(u32 params);
