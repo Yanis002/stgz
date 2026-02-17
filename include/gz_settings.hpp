@@ -25,12 +25,12 @@ typedef struct GZProfileHeader {
 
 // the save file is large so we don't care about packing stuff to save space
 typedef struct GZProfile {
-    bool mFasterTitleScreen; // goes into the "touch or start to exit" state immediately
-    bool mSkipTitleScreen; // same as above except it jump straight into the file select without requiring any input
-    s16 mPositionIndex;
-    Vec3p mLandPosSlots[MAX_POS_SLOTS];
-    Vec3p mTrainPosSlots[MAX_POS_SLOTS];
-    u32 mCheatBitfield[4]; // way more than enough
+    bool fasterTitleScreen; // goes into the "touch or start to exit" state immediately
+    bool skipTitleScreen; // same as above except it jump straight into the file select without requiring any input
+    s16 positionIndex;
+    Vec3p landPosSlots[MAX_POS_SLOTS];
+    Vec3p trainPosSlots[MAX_POS_SLOTS];
+    u32 cheatBitfield[4]; // way more than enough
 } GZProfile;
 
 // profiles first because they might take a lot of space
@@ -73,10 +73,10 @@ class GZSettings {
         GZProfile* pProfile = this->GetProfile();
 
         if (gGZ.IsOnLand()) {
-            return pProfile->mLandPosSlots;
+            return pProfile->landPosSlots;
         }
 
-        return pProfile->mTrainPosSlots;
+        return pProfile->trainPosSlots;
     }
 
     GZMenu* GetMenu() { return &this->mMenu; }

@@ -50,33 +50,33 @@ static void ExecuteFrameAdvance(u32 params) { gGZ.GetState()->requestedFrames++;
 static void ExecutePrevPosition(u32 params) {
     GZProfile* pProfile = gSettings.GetProfile();
 
-    pProfile->mPositionIndex--;
+    pProfile->positionIndex--;
 
-    if (pProfile->mPositionIndex < 0) {
-        pProfile->mPositionIndex = 0;
+    if (pProfile->positionIndex < 0) {
+        pProfile->positionIndex = 0;
     }
 }
 
 static void ExecuteNextPosition(u32 params) {
     GZProfile* pProfile = gSettings.GetProfile();
 
-    pProfile->mPositionIndex++;
+    pProfile->positionIndex++;
 
-    if (pProfile->mPositionIndex > MAX_POS_SLOTS) {
-        pProfile->mPositionIndex = MAX_POS_SLOTS;
+    if (pProfile->positionIndex > MAX_POS_SLOTS) {
+        pProfile->positionIndex = MAX_POS_SLOTS;
     }
 }
 
 static void ExecuteSavePosition(u32 params) {
     GZProfile* pProfile = gSettings.GetProfile();
     Vec3p* pPosArray = gSettings.GetPosArray();
-    pPosArray[pProfile->mPositionIndex] = data_027e0478.mPlayer.mPos;
+    pPosArray[pProfile->positionIndex] = data_027e0478.mPlayer.mPos;
 }
 
 static void ExecuteLoadPosition(u32 params) {
     GZProfile* pProfile = gSettings.GetProfile();
     Vec3p* pPosArray = gSettings.GetPosArray();
-    data_027e0478.mPlayer.mPos = pPosArray[pProfile->mPositionIndex];
+    data_027e0478.mPlayer.mPos = pPosArray[pProfile->positionIndex];
 }
 
 static void ExecuteVoidOut(u32 params) {
@@ -98,12 +98,12 @@ GZCommandManager::GZCommandManager() {
 void GZCommandManager::InitMenu() {
     this->mMenu.title = "Commands";
     this->mMenu.parent = gMenuManager.GetMainMenu();
-    this->mMenu.mCount = ARRAY_LEN(sCommands);
-    this->mMenu.entries = new GZMenuItem[this->mMenu.mCount];
+    this->mMenu.count = ARRAY_LEN(sCommands);
+    this->mMenu.entries = new GZMenuItem[this->mMenu.count];
     this->mMenu.needSaveFile = false;
     this->mMenu.itemIndex = 0;
 
-    for (int i = 0; i < this->mMenu.mCount; i++) {
+    for (int i = 0; i < this->mMenu.count; i++) {
         this->mMenu.entries[i].name = sCommands[i].btnCombo.name;
         this->mMenu.entries[i].eType = GZMenuItemType_Default;
         this->mMenu.entries[i].action = sCommands[i].actionCallback;

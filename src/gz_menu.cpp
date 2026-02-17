@@ -282,7 +282,7 @@ void GZMenuItem::Draw(Vec2b* pPos, s16 index, bool selected, bool needSaveFile) 
 }
 
 void GZMenu::Draw(Vec2b* pPos) {
-    for (s16 i = 0; i < this->mCount; i++) {
+    for (s16 i = 0; i < this->count; i++) {
         this->entries[i].Draw(pPos, i, i + 1 == gMenuManager.GetState()->itemIndex, this->needSaveFile);
         pPos->y++;
     }
@@ -408,7 +408,7 @@ void GZMenuManager::Update() {
     }
 
     if (this->mControls.down.Executed(this->mpButtons)) {
-        if (this->mState.itemIndex + 1 < this->mpActiveMenu->mCount + 1) {
+        if (this->mState.itemIndex + 1 < this->mpActiveMenu->count + 1) {
             this->mState.itemIndex++;
             this->mState.requestRedraw = true;
         }

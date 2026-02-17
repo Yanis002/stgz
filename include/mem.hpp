@@ -14,9 +14,9 @@ extern "C" u8 _overlay_end[];
 
 struct HeapHandler {
     u32 magic;
-    void* mHeapLo;
-    void* mHeapHi;
-    size_t mHeapSize;
+    void* heapLo;
+    void* heapHi;
+    size_t heapSize;
 
     struct HeapSlot {
         u32 state;
@@ -46,13 +46,13 @@ struct HeapHandler {
 
     HeapHandler() {
         this->magic = 'HZGY';
-        this->mHeapLo = (void*)((u8*)_heap_start + sizeof(HeapHandler));
-        this->mHeapHi = (void*)_overlay_end;
-        this->mHeapSize = _overlay_end - _heap_start;
-        ((HeapSlot*)this->mHeapLo)->SetFree();
+        this->heapLo = (void*)((u8*)_heap_start + sizeof(HeapHandler));
+        this->heapHi = (void*)_overlay_end;
+        this->heapSize = _overlay_end - _heap_start;
+        ((HeapSlot*)this->heapLo)->SetFree();
     }
 
-    size_t GetHeapSize() { return this->mHeapSize; }
+    size_t GetHeapSize() { return this->heapSize; }
 
     HeapSlot* FindSlot(size_t size);
     void* Alloc(size_t size);

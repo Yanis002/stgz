@@ -31,10 +31,10 @@ GZCheatManager::GZCheatManager() {
     this->mMenu.title = "Cheats";
     this->mMenu.parent = gMenuManager.GetMainMenu();
     this->mMenu.entries = sCheatMenuItems;
-    this->mMenu.mCount = ARRAY_LEN(sCheatMenuItems);
+    this->mMenu.count = ARRAY_LEN(sCheatMenuItems);
     this->mMenu.needSaveFile = true;
     this->mMenu.itemIndex = 0;
-    gCheatManager.SetCheatBitfieldPtr(gSettings.GetProfile()->mCheatBitfield);
+    gCheatManager.SetCheatBitfieldPtr(gSettings.GetProfile()->cheatBitfield);
 }
 
 void GZCheatManager::SetCheatBitfieldPtr(u32* pBitfield) { this->mpCheatBitfield = pBitfield; }

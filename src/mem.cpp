@@ -3,11 +3,11 @@
 HeapHandler gHeapHandler;
 
 HeapHandler::HeapSlot* HeapHandler::FindSlot(size_t size) {
-    HeapSlot* pSlot = (HeapSlot*)this->mHeapLo;
+    HeapSlot* pSlot = (HeapSlot*)this->heapLo;
     HeapSlot* pPrev = NULL;
     HeapSlot* pNext = NULL;
 
-    while (pSlot < this->mHeapHi) {
+    while (pSlot < this->heapHi) {
         pNext = (HeapSlot*)((u8*)pSlot->GetStart() + size);
 
         // consider the block available if:
@@ -41,7 +41,7 @@ HeapHandler::HeapSlot* HeapHandler::FindSlot(size_t size) {
 void* HeapHandler::Alloc(size_t size) {
     HeapSlot* pSlot = this->FindSlot(size);
 
-    if (pSlot >= this->mHeapHi) {
+    if (pSlot >= this->heapHi) {
         return NULL;
     }
 

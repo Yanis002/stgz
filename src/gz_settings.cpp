@@ -28,7 +28,7 @@ static void PrevProfile(u32 params) {
         pProfileHeader->curProfileIndex = 0;
     }
 
-    gCheatManager.SetCheatBitfieldPtr(gSettings.GetProfile()->mCheatBitfield);
+    gCheatManager.SetCheatBitfieldPtr(gSettings.GetProfile()->cheatBitfield);
 }
 
 static void NextProfile(u32 params) {
@@ -40,7 +40,7 @@ static void NextProfile(u32 params) {
         pProfileHeader->curProfileIndex = gSettings.GetProfileCount() - 1;
     }
 
-    gCheatManager.SetCheatBitfieldPtr(gSettings.GetProfile()->mCheatBitfield);
+    gCheatManager.SetCheatBitfieldPtr(gSettings.GetProfile()->cheatBitfield);
 }
 
 static void LoadDefaultProfile(u32 params) {
@@ -66,7 +66,7 @@ GZSettings::GZSettings() {
     this->mMenu.title = "Settings";
     this->mMenu.parent = gMenuManager.GetMainMenu();
     this->mMenu.entries = sSettingsMenuItems;
-    this->mMenu.mCount = ARRAY_LEN(sSettingsMenuItems);
+    this->mMenu.count = ARRAY_LEN(sSettingsMenuItems);
     this->mMenu.needSaveFile = true;
     this->mMenu.itemIndex = 0;
 
@@ -98,7 +98,7 @@ void GZSettings::Draw(Vec2b* pPos) {
 void GZSettings::ProcessTitleScreen() {
     GZProfile* pProfile = this->GetProfile();
 
-    if (data_027e0994 == NULL || (!pProfile->mFasterTitleScreen && !pProfile->mSkipTitleScreen)) {
+    if (data_027e0994 == NULL || (!pProfile->fasterTitleScreen && !pProfile->skipTitleScreen)) {
         return;
     }
 
@@ -110,16 +110,16 @@ void GZSettings::ProcessTitleScreen() {
 
     pTitleScreen->func_ov025_020c4e54();
 
-    if (pProfile->mSkipTitleScreen) {
+    if (pProfile->skipTitleScreen) {
         data_ov000_020b5214.func_ov000_0206db44(0x0B);
         pTitleScreen->func_ov025_020c4ea0(TitleScreenState_ToFileSelect);
     }
 }
 
 static GZProfile sDefaultProfile = {
-    .mFasterTitleScreen = true,
-    .mSkipTitleScreen = true,
-    .mPositionIndex = 0,
+    .fasterTitleScreen = true,
+    .skipTitleScreen = true,
+    .positionIndex = 0,
 };
 
 void GZSettings::LoadDefaultProfile() {
@@ -128,8 +128,8 @@ void GZSettings::LoadDefaultProfile() {
     memcpy(pProfile, &sDefaultProfile, sizeof(GZProfile));
 
     for (int i = 0; i < MAX_POS_SLOTS; i++) {
-        pProfile->mLandPosSlots[i] = {0, 0, 0};
-        pProfile->mTrainPosSlots[i] = {0, 0, 0};
+        pProfile->landPosSlots[i] = {0, 0, 0};
+        pProfile->trainPosSlots[i] = {0, 0, 0};
     }
 }
 
@@ -142,8 +142,8 @@ void GZSettings::ResetAllProfiles() {
         memcpy(pProfile, &sDefaultProfile, sizeof(GZProfile));
 
         for (int j = 0; j < MAX_POS_SLOTS; j++) {
-            pProfile->mLandPosSlots[j] = {0, 0, 0};
-            pProfile->mTrainPosSlots[j] = {0, 0, 0};
+            pProfile->landPosSlots[j] = {0, 0, 0};
+            pProfile->trainPosSlots[j] = {0, 0, 0};
         }
     }
 }
