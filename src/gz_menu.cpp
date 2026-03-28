@@ -5,6 +5,7 @@
 #include "gz_cheats.hpp"
 #include "gz_commands.hpp"
 #include "gz_settings.hpp"
+#include "gz_warp.hpp"
 
 #include <Game/GameModeManager.hpp>
 #include <MainGame/MainGame.hpp>
@@ -82,6 +83,7 @@ extern GZMenu sAboutMenu;
 // -- main menu items --
 
 static GZMenuItem sMainMenuItems[] = {
+    {"Warp", GZMenuItemType_Default, NULL, NULL, 0, gWarpManager.GetMenu(), 0},
     {"Cheats", GZMenuItemType_Default, NULL, NULL, 0, gCheatManager.GetMenu(), 0},
     {"Inventory", GZMenuItemType_Default, NULL, NULL, 0, &sInventoryMenu, 0},
     {"Collection", GZMenuItemType_Default, NULL, NULL, 0, &sCollectionMenu, 0},
@@ -545,7 +547,9 @@ void GZMenuManager::SetupScreen() {
     elemPos.y++;
 
     // menu items
-    if (this->IsCommandsMenuActive()) {
+    if (gWarpManager.IsMenuActive()) {
+        gWarpManager.Draw(&elemPos);
+    } else if (this->IsCommandsMenuActive()) {
         gCommandManager.Draw(&elemPos);
     } else if (this->IsSettingsMenuActive()) {
         gSettings.Draw(&elemPos);

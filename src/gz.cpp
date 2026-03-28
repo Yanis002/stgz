@@ -4,6 +4,7 @@
 #include "gz_commands.hpp"
 #include "gz_menu.hpp"
 #include "gz_settings.hpp"
+#include "gz_warp.hpp"
 
 #include <System/Random.hpp>
 #include <nitro/button.h>
@@ -22,4 +23,5 @@ void GZ::OnGameModeUpdate() {
     gCommandManager.Update();
     gSettings.Update();
     gCheatManager.Update();
+    gWarpManager.Update();
 }
