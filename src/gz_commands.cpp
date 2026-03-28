@@ -6,6 +6,7 @@
 
 #include <Unknown/UnkStruct_02049b18.hpp>
 #include <Unknown/UnkStruct_027e0478.hpp>
+#include <Unknown/UnkStruct_027e09a4.hpp>
 #include <nitro/math.h>
 #include <regs.h>
 #include <string.h>
@@ -18,6 +19,7 @@ static void ExecuteNextPosition(u32 params);
 static void ExecuteSavePosition(u32 params);
 static void ExecuteLoadPosition(u32 params);
 static void ExecuteVoidOut(u32 params);
+static void ExecuteRespawn(u32 params);
 static void ExecuteTurbo(u32 params);
 
 // commands with default button combos, assigning the held btn to none means it's not required (and vice versa)
@@ -30,6 +32,7 @@ static GZCmdItem sCommands[] = {
     {ButtonCombo("Save Position", BTN_R, BTN_X), ExecuteSavePosition},
     {ButtonCombo("Load Position", BTN_R, BTN_A), ExecuteLoadPosition},
     {ButtonCombo("Void Out", BTN_R, BTN_Y), ExecuteVoidOut},
+    {ButtonCombo("Scene Reload", BTN_L, BTN_Y), ExecuteRespawn},
     {ButtonCombo("Turbo", BTN_R, BTN_B), ExecuteTurbo},
 };
 
@@ -84,6 +87,8 @@ static void ExecuteVoidOut(u32 params) {
         data_027e0478.mPlayer.mPos.y = FLOAT_TO_Q20(-4000.0f);
     }
 }
+
+static void ExecuteRespawn(u32 params) { func_ov000_02070af8(data_027e09a4); }
 
 static void ExecuteTurbo(u32 params) {}
 

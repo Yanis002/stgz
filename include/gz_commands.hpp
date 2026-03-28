@@ -6,8 +6,6 @@
 
 #include <nitro/math.h>
 
-typedef void (*GZCmdInit)(void);
-
 struct GZCmdItem {
     ButtonCombo btnCombo;
     GZAction actionCallback;
