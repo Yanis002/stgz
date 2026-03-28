@@ -6,9 +6,37 @@
 #include <Unknown/UnkStruct_027e09a4.hpp>
 
 static void ExecuteWarp(u32 params) {
-    data_027e09a4->mSavedSceneIndex = params & 0xFF;
-    data_027e09a4->mSavedSpawnIndex = 0;
-    func_ov000_02070af8(data_027e09a4);
+    UnkStruct_SceneChange1 infos;
+    infos.mNextSceneIndex = params & 0xFF;
+    infos.mSpawnIndex = 0;
+
+    // necessary to avoid crashes with specific scenes
+    switch (infos.mNextSceneIndex) {
+        case SceneIndex_d_main_f:
+            infos.mRoomIndex = 1;
+            break;
+        case SceneIndex_f_flame:
+            infos.mRoomIndex = 3; // 2 also works
+            break;
+        case SceneIndex_f_water3:
+            infos.mRoomIndex = 10;
+            break;
+        case SceneIndex_f_kakushi4:
+            infos.mRoomIndex = 2; // above will spawn on specific floors of the dungeon
+            break;
+        case SceneIndex_b_last22:
+        case SceneIndex_e3_train:
+        case SceneIndex_e3_smount:
+            //! TODO: those 3 are crashing, need a fix
+            return;
+        default:
+            infos.mRoomIndex = 0;
+            break;
+    }
+
+    gMenuManager.Quit();
+    memcpy(&data_027e09a4->mUnk_14, &infos, sizeof(UnkStruct_SceneChange1));
+    func_ov000_02071000(data_027e09a4->mpWarpUnk1, &data_027e09a4->mUnk_14, 2);
 }
 
 static GZMenuItem sTestMenuItems[] = {
@@ -279,4 +307,6 @@ void GZWarpManager::Draw(Vec2b* pPos) {
             elemPos.y = pPos->y;
         }
     }
+
+    *pPos = elemPos;
 }

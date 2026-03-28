@@ -16,3 +16,4 @@ extern "C" void func_0201b180(bool, bool);
 extern "C" void func_02027654(void*, int); // DC_FlushRange
 extern "C" void func_020252ec(void*, int, int); // GX0_LoadBG0Scr
 extern "C" void func_ov000_02070af8(UnkStruct_027e09a4*);
+extern "C" void func_ov000_02071000(UnkStruct_WarpUnk1*, UnkStruct_SceneChange1*, unk32);

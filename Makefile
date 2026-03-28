@@ -109,10 +109,9 @@ else
 $(error "Region not supported: $(REGION)")
 endif
 
-OVLGZ_SIZE := 0x20000
+OVLGZ_SIZE := 0x10000
 HOOKS_SIZE := 0x1E0
 RESERVED_SIZE := 0x10
-RESERVED_ADDR := $(shell $(PYTHON) -c "print(f'0x{$(OVLGZ_ADDR) + $(OVLGZ_SIZE) - $(RESERVED_SIZE):08X}')")
 
 # compiler settings
 CFLAGS_BASE := -marm -mthumb-interwork -march=armv5te -mtune=arm946e-s -nostdlib -nodefaultlibs -nostartfiles
