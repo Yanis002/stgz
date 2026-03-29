@@ -10,7 +10,7 @@ libs/libgz.a
 
 # workspace files
 *.nds
-*.bps
+*.ppf
 
 # melonDS files
 *.sav

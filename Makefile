@@ -76,12 +76,12 @@ DSROM := tools/dsrom
 ARMIPS_DIR := tools/armips
 ARMIPS ?= $(ARMIPS_DIR)/out/armips
 
-# Flips
-FLIPS ?= tools/flips/flips
+# PPF
+MAKEPPF3 ?= tools/ppf/makeppf3
 
 # main source/objects
 BUILD_DIR := build/$(REGION)
-ALL_FILES := $(shell find src/ -path "src/thumb" -prune -o -print)
+ALL_FILES := $(sort $(shell find src/ -path "src/thumb" -prune -o -print))
 ASM_FILES := $(filter %.s, $(ALL_FILES))
 C_FILES := $(filter %.c, $(ALL_FILES))
 CPP_FILES := $(filter %.cpp, $(ALL_FILES))
@@ -125,7 +125,7 @@ WARNINGS := -Wall -Wno-multichar -Wno-unknown-pragmas -Wno-strict-aliasing -Wno-
 INCLUDES := -I include -I $(STGZ_DECOMP_DIR)/include -I $(STGZ_DECOMP_DIR)/libs/c/include
 CPP_DEFINES := -DGZ_OVL_ID=114 -DPACKAGE_VERSION='$(PACKAGE_VERSION)' -DPACKAGE_NAME='$(PACKAGE_NAME)' -DPACKAGE_COMMIT_AUTHOR='$(PACKAGE_COMMIT_AUTHOR)' -DPACKAGE_AUTHOR='$(PACKAGE_AUTHOR)'
 CFLAGS := -Os -fno-short-enums -fomit-frame-pointer -ffast-math -fno-builtin -fshort-wchar -MMD -MP $(WARNINGS) $(INCLUDES) $(CPP_DEFINES)
-CPP_FLAGS := $(CFLAGS) -fno-rtti -fno-exceptions -std=c++2c
+CPP_FLAGS := $(CFLAGS) -fno-rtti -fno-exceptions -fno-threadsafe-statics -std=c++2c
 
 ELF := $(BUILD_DIR)/ovgz.elf
 BIN := $(ELF:.elf=.bin)
@@ -153,14 +153,14 @@ $(shell $(MKDIR) -p $(HOOKS_BUILD_DIR)/src)
 EXTRACT_DIR := extract
 EXTRACTED_DIR := $(EXTRACT_DIR)/$(REGION)
 BASEROM := $(EXTRACT_DIR)/baserom_st_$(REGION).nds
+ARM7_BIOS ?= $(EXTRACT_DIR)/arm7_bios.bin
 
 ifeq ($(OUT_HASH),1)
 OUT_ROM := stgz-$(REGION)-$(PACKAGE_VERSION).nds
-OUT_BPS := $(OUT_ROM:.nds=.bps)
 else
 OUT_ROM := stgz-$(REGION).nds
-OUT_BPS := $(OUT_ROM:.nds=.bps)
 endif
+OUT_PPF := $(OUT_ROM:.nds=.ppf)
 
 EXTRACTED_REL := ../../../$(EXTRACTED_DIR)
 ARMIPS_ARGS ?= \
@@ -199,7 +199,7 @@ distclean: clean
 
 extract:
 	$(call print_no_args,Extracting the rom...)
-	$(V)$(DSROM) extract --rom $(BASEROM) --path $(EXTRACTED_DIR)
+	$(V)$(DSROM) extract --rom $(BASEROM) --path $(EXTRACTED_DIR) --arm7-bios $(ARM7_BIOS)
 	$(call print_no_args,Success!)
 
 hooks: overlay $(HOOKS_BIN) $(HOOKS_GAME_BIN)
@@ -219,14 +219,14 @@ ifeq ("$(wildcard $(ARMIPS_DIR)/out)", "")
 	$(V)$(MKDIR) $(ARMIPS_DIR)/out && cd $(ARMIPS_DIR)/out && $(CMAKE) -DCMAKE_BUILD_TYPE=Release .. && $(CMAKE) --build .
 endif
 endif
-	$(call print_no_args,Building Flips...)
-	$(V)$(MAKE) -C tools/flips TARGET=cli
+	$(call print_no_args,Building PPF3 tools...)
+	$(V)$(MAKE) -C tools/ppf
 
 infos:
 	$(call print_no_args,Success!)
 	@$(PRINT) "==== Build Options ====$(NO_COL)\n"
 	@$(PRINT) "${GREEN}Game Region: $(BLUE)$(REGION)$(NO_COL)\n"
-	@$(PRINT) "${GREEN}Rom Path: $(BLUE)$(OUT_ROM) ($(OUT_BPS))$(NO_COL)\n"
+	@$(PRINT) "${GREEN}Rom Path: $(BLUE)$(OUT_ROM) ($(OUT_PPF))$(NO_COL)\n"
 	@$(PRINT) "${GREEN}Code Version: $(BLUE)$(PACKAGE_VERSION)$(NO_COL)\n"
 	@$(PRINT) "${GREEN}Build Author: $(BLUE)$(PACKAGE_AUTHOR)$(NO_COL)\n"
 	@$(PRINT) "${GREEN}Commit Author: $(BLUE)$(PACKAGE_COMMIT_AUTHOR)$(NO_COL)\n"
@@ -243,8 +243,8 @@ overlay: $(BIN)
 	$(call print_no_args,Success!)
 
 patch: $(OUT_ROM)
-	$(call print_no_args,Creating BPS patch...)
-	$(V)$(FLIPS) --create --bps "$(BASEROM)" "$(OUT_ROM)" "$(OUT_BPS)"
+	$(call print_no_args,Creating PPF patch...)
+	$(V)$(MAKEPPF3) c "$(BASEROM)" "$(OUT_ROM)" "$(OUT_PPF)"
 	$(V)$(MAKE) infos
 
 run: all
@@ -327,4 +327,4 @@ $(HOOKS_GAME_BIN): $(HOOKS_GAME_ELF)
 
 $(OUT_ROM): build
 	$(call print_one_arg,Assembling the rom:,$@)
-	$(V)$(DSROM) build --config $(EXTRACTED_DIR)/config.yaml --rom $@
+	$(V)$(DSROM) build --config $(EXTRACTED_DIR)/config.yaml --rom $@ --arm7-bios $(ARM7_BIOS)

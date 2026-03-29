@@ -41,15 +41,18 @@ jobs:
 
       - name: Build
         run: |
-          COMPARE=0 make init
-          tools/dsrom build --config extract/${{ matrix.version }}/config.yaml --rom extract/baserom_st_${{ matrix.version }}.nds
-          OUT_HASH=1 make patch
+          make init
+          make setup
+          make patch
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: stgz-${{ matrix.version }}-${{ github.sha }}.bps
-          path: stgz-${{ matrix.version }}-*.bps
+          name: stgz-${{ matrix.version }}-${{ github.sha }}
+          path: |
+            stgz-${{ matrix.version }}.ppf
+            build/${{ matrix.version }}/*.map
+            hooks/build/${{ matrix.version }}/*.map
 
       - name: Upload rolling release
         uses: softprops/action-gh-release@v2
@@ -60,5 +63,5 @@ jobs:
           target_commitish: main
           tag_name: 'rolling-release'
           prerelease: false
-          files: stgz-${{ matrix.version }}-*.bps
+          files: stgz-${{ matrix.version }}.ppf
         continue-on-error: true
