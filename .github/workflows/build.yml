@@ -32,7 +32,9 @@ jobs:
           submodules: recursive
 
       - name: Git config
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global user.name "GitHub CI"
 
       - name: Prepare
         run: |
