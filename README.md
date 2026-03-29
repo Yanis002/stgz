@@ -67,5 +67,6 @@ Concept heavily inspired by [gz](https://github.com/glankk/gz), made by glank an
 Referenced projects:
 - [ds-rom](https://github.com/AetiasHax/ds-rom), made by Aetias.
 - [armips](https://github.com/Kingcom/armips), made by Kingcom and many contributors.
+- [Flips](https://github.com/Alcaro/Flips), made by Alcaro.
 
 Made with ♥ by me.
