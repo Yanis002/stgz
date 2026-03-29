@@ -27,12 +27,13 @@ Basically, if you're familiar with the [practice tools from OoT](https://github.
 
 ## Patching
 
-To apply a BPS patch, you need to follow the following steps:
+To apply a PPF patch, you need to follow the following steps:
 - Go to [RomPatcher.js](https://www.marcrobledo.com/RomPatcher.js/) by Marc Robledo.
-- In the "ROM file" field, open the path to the baserom.
-- In the "Patch file" field, open the path to the BPS patch (from the releases or by running `make patch`).
-- If you want to be sure it's fine you can click on "force calculate checksum".
+- In the "ROM file" field, open the path to the baserom. Make sure the sha1 hash match one of [these](extract/README.md).
+- In the "Patch file" field, open the path to the PPF patch (from the releases or by running `make patch`).
 - Click on "Apply Patch".
+
+Note: you need to use a baserom corresponding to the region indicated in the filename of the PPF patch.
 
 ## Building
 
@@ -76,6 +77,6 @@ Concept heavily inspired by [gz](https://github.com/glankk/gz), made by glank an
 Referenced projects:
 - [ds-rom](https://github.com/AetiasHax/ds-rom), made by Aetias.
 - [armips](https://github.com/Kingcom/armips), made by Kingcom and many contributors.
-- [Flips](https://github.com/Alcaro/Flips), made by Alcaro.
+- [PPF](https://github.com/meunierd/ppf), made by Icarus/Paradox.
 
 Made with ♥ by me.
