@@ -9,11 +9,11 @@ WIP practice tools for The Legend of Zelda: Spirit Tracks.
 - add commands, like save the position, moon jump, make Link walk faster, reload area
 - inventory editor
 - cheats (health, rupees, ammo, etc)
+- warp menu
 
 ## Planned Features
 
 I'm not sure yet what are the limitations but here's what I'd like to have:
-- warp menu
 - equips editor (item, clothes, train parts?)
 - savestates (if possible)
 - debug tools, like a collision/hitbox viewer, watches
