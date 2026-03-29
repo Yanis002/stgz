@@ -1,6 +1,17 @@
 #include "mem.hpp"
 
-HeapHandler gHeapHandler;
+HeapHandler* HeapHandler::GetHeapHandler() {
+    static HeapHandler gHeapHandler;
+    return &gHeapHandler;
+}
+
+HeapHandler::HeapHandler() {
+    this->magic = 'HZGY';
+    this->heapLo = (void*)((u8*)_heap_start + sizeof(HeapHandler));
+    this->heapHi = (void*)_overlay_end;
+    this->heapSize = _overlay_end - _heap_start;
+    ((HeapSlot*)this->heapLo)->SetFree();
+}
 
 HeapHandler::HeapSlot* HeapHandler::FindSlot(size_t size) {
     HeapSlot* pSlot = (HeapSlot*)this->heapLo;

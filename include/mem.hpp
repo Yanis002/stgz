@@ -44,61 +44,57 @@ struct HeapHandler {
         }
     };
 
-    HeapHandler() {
-        this->magic = 'HZGY';
-        this->heapLo = (void*)((u8*)_heap_start + sizeof(HeapHandler));
-        this->heapHi = (void*)_overlay_end;
-        this->heapSize = _overlay_end - _heap_start;
-        ((HeapSlot*)this->heapLo)->SetFree();
-    }
-
     size_t GetHeapSize() { return this->heapSize; }
 
+    static HeapHandler* GetHeapHandler();
+    HeapHandler();
     HeapSlot* FindSlot(size_t size);
     void* Alloc(size_t size);
     void Free(void* ptr);
 };
 
-extern HeapHandler gHeapHandler;
-
 inline void* operator new(size_t size) {
+    HeapHandler* pHandler = HeapHandler::GetHeapHandler();
+
     // abort if the requested size doesn't fit
-    if (size > gHeapHandler.GetHeapSize() || size == 0) {
+    if (size > pHandler->GetHeapSize() || size == 0) {
         size = 1;
     }
 
     // do the allocation with the requested size aligned
-    return gHeapHandler.Alloc((size + (4 - 1)) & ~(4 - 1));
+    return pHandler->Alloc((size + (4 - 1)) & ~(4 - 1));
 }
 
 inline void* operator new[](size_t size) {
-    if (size > gHeapHandler.GetHeapSize() || size == 0) {
+    HeapHandler* pHandler = HeapHandler::GetHeapHandler();
+
+    if (size > pHandler->GetHeapSize() || size == 0) {
         size = 1;
     }
 
-    return gHeapHandler.Alloc((size + (4 - 1)) & ~(4 - 1));
+    return pHandler->Alloc((size + (4 - 1)) & ~(4 - 1));
 }
 
 inline void operator delete(void* ptr) {
     if (ptr != nullptr) {
-        gHeapHandler.Free(ptr);
+        HeapHandler::GetHeapHandler()->Free(ptr);
     }
 }
 
 inline void operator delete[](void* ptr) {
     if (ptr != nullptr) {
-        gHeapHandler.Free(ptr);
+        HeapHandler::GetHeapHandler()->Free(ptr);
     }
 }
 
 inline void operator delete(void* ptr, unsigned int) {
     if (ptr != nullptr) {
-        gHeapHandler.Free(ptr);
+        HeapHandler::GetHeapHandler()->Free(ptr);
     }
 }
 
 inline void operator delete[](void* ptr, unsigned int) {
     if (ptr != nullptr) {
-        gHeapHandler.Free(ptr);
+        HeapHandler::GetHeapHandler()->Free(ptr);
     }
 }
