@@ -559,10 +559,16 @@ void GZMenuManager::SetupScreen() {
 
     // current selection arrow
     Vec2b arrowPos = this->mState.menuPos;
-    arrowPos.x--;
-    arrowPos.y += this->mState.itemIndex;
+
+    if (this->mState.itemIndex > 20 + 1) {
+        arrowPos.x += 14 - 1;
+        arrowPos.y += this->mState.itemIndex - 20 - 1;
+    } else {
+        arrowPos.x--;
+        arrowPos.y += this->mState.itemIndex;
+    }
+
     DisplayDebugText(DRAW_TO_TOP_SCREEN, &arrowPos, 0, this->mState.itemIndex == 0 ? 3 : 1, ">");
-    arrowPos.y++;
 
     // about screen
     if (this->IsAboutMenuActive()) {
