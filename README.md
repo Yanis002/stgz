@@ -25,6 +25,15 @@ Basically, if you're familiar with the [practice tools from OoT](https://github.
 - Add rolling releases (low priority)
 - Implement each planned features, if possible
 
+## Patching
+
+To apply a BPS patch, you need to follow the following steps:
+- Go to [RomPatcher.js](https://www.marcrobledo.com/RomPatcher.js/) by Marc Robledo.
+- In the "ROM file" field, open the path to the baserom.
+- In the "Patch file" field, open the path to the BPS patch (from the releases or by running `make patch`).
+- If you want to be sure it's fine you can click on "force calculate checksum".
+- Click on "Apply Patch".
+
 ## Building
 
 You will need the following packages/tools:

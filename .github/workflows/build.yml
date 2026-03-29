@@ -3,6 +3,14 @@ name: Build
 on:
   push:
   pull_request:
+  release:
+    types:
+      - created
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: read
 
 jobs:
   build:
@@ -19,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -34,4 +42,23 @@ jobs:
       - name: Build
         run: |
           COMPARE=0 make init
-          make
+          tools/dsrom build --config extract/${{ matrix.version }}/config.yaml --rom extract/baserom_st_${{ matrix.version }}.nds
+          OUT_HASH=1 make patch
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: stgz-${{ matrix.version }}-${{ github.sha }}.bps
+          path: stgz-${{ matrix.version }}-*.bps
+
+      - name: Upload rolling release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          name: 'Rolling release'
+          body: Release built from latest commit on `main` branch. Check the commit history for more details.
+          target_commitish: main
+          tag_name: 'rolling-release'
+          prerelease: false
+          files: stgz-${{ matrix.version }}-*.bps
+        continue-on-error: true

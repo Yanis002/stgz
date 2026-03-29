@@ -49,6 +49,7 @@ STGZ_EMULATOR ?=
 REGION := eur
 
 COMPARE ?= 1
+OUT_HASH ?= 0
 
 ### project tools ###
 
@@ -74,6 +75,9 @@ DSROM := tools/dsrom
 # armips setup
 ARMIPS_DIR := tools/armips
 ARMIPS ?= $(ARMIPS_DIR)/out/armips
+
+# Flips
+FLIPS ?= tools/flips/flips
 
 # main source/objects
 BUILD_DIR := build/$(REGION)
@@ -148,7 +152,15 @@ $(shell $(MKDIR) -p $(HOOKS_BUILD_DIR)/src)
 
 EXTRACT_DIR := extract
 EXTRACTED_DIR := $(EXTRACT_DIR)/$(REGION)
-OUT_ROM := stgz.nds
+BASEROM := $(EXTRACT_DIR)/baserom_st_$(REGION).nds
+
+ifeq ($(OUT_HASH),1)
+OUT_ROM := stgz-$(REGION)-$(PACKAGE_VERSION).nds
+OUT_BPS := $(OUT_ROM:.nds=.bps)
+else
+OUT_ROM := stgz-$(REGION).nds
+OUT_BPS := $(OUT_ROM:.nds=.bps)
+endif
 
 EXTRACTED_REL := ../../../$(EXTRACTED_DIR)
 ARMIPS_ARGS ?= \
@@ -167,17 +179,7 @@ ARMIPS_ARGS ?= \
 
 ### project targets ###
 
-all: build
-	$(call print_no_args,Assembling the rom...)
-	$(V)$(DSROM) build --config $(EXTRACTED_DIR)/config.yaml --rom $(OUT_ROM)
-	$(call print_no_args,Success!)
-	@$(PRINT) "==== Build Options ====$(NO_COL)\n"
-	@$(PRINT) "${GREEN}Game Region: $(BLUE)$(REGION)$(NO_COL)\n"
-	@$(PRINT) "${GREEN}Rom Path: $(BLUE)$(OUT_ROM)$(NO_COL)\n"
-	@$(PRINT) "${GREEN}Code Version: $(BLUE)$(PACKAGE_VERSION)$(NO_COL)\n"
-	@$(PRINT) "${GREEN}Build Author: $(BLUE)$(PACKAGE_AUTHOR)$(NO_COL)\n"
-	@$(PRINT) "${GREEN}Commit Author: $(BLUE)$(PACKAGE_COMMIT_AUTHOR)$(NO_COL)\n"
-	@$(PRINT) "${BLINK}Build succeeded.\n$(NO_COL)"
+all: $(OUT_ROM) infos
 
 build: hooks
 	$(call print_no_args,Patching the game...)
@@ -197,7 +199,7 @@ distclean: clean
 
 extract:
 	$(call print_no_args,Extracting the rom...)
-	$(V)$(DSROM) extract --rom $(EXTRACT_DIR)/baserom_st_$(REGION).nds --path $(EXTRACTED_DIR)
+	$(V)$(DSROM) extract --rom $(BASEROM) --path $(EXTRACTED_DIR)
 	$(call print_no_args,Success!)
 
 hooks: overlay $(HOOKS_BIN) $(HOOKS_GAME_BIN)
@@ -207,7 +209,7 @@ init: venv
 ifeq ($(COMPARE),1)
 	$(V)sha1sum -c $(EXTRACT_DIR)/baserom_st_$(REGION).sha1
 endif
-	$(V)$(DL_TOOL) -p tools/ dsrom v0.6.1
+	$(V)$(DL_TOOL) -p tools/ dsrom v0.7.0
 	$(V)$(DL_TOOL) -p tools/ binutils arm-2.42-0
 ifeq ("$(wildcard $(ARMIPS_DIR))", "")
 	$(error armips not found!)
@@ -217,6 +219,18 @@ ifeq ("$(wildcard $(ARMIPS_DIR)/out)", "")
 	$(V)$(MKDIR) $(ARMIPS_DIR)/out && cd $(ARMIPS_DIR)/out && $(CMAKE) -DCMAKE_BUILD_TYPE=Release .. && $(CMAKE) --build .
 endif
 endif
+	$(call print_no_args,Building Flips...)
+	$(V)$(MAKE) -C tools/flips TARGET=cli
+
+infos:
+	$(call print_no_args,Success!)
+	@$(PRINT) "==== Build Options ====$(NO_COL)\n"
+	@$(PRINT) "${GREEN}Game Region: $(BLUE)$(REGION)$(NO_COL)\n"
+	@$(PRINT) "${GREEN}Rom Path: $(BLUE)$(OUT_ROM) ($(OUT_BPS))$(NO_COL)\n"
+	@$(PRINT) "${GREEN}Code Version: $(BLUE)$(PACKAGE_VERSION)$(NO_COL)\n"
+	@$(PRINT) "${GREEN}Build Author: $(BLUE)$(PACKAGE_AUTHOR)$(NO_COL)\n"
+	@$(PRINT) "${GREEN}Commit Author: $(BLUE)$(PACKAGE_COMMIT_AUTHOR)$(NO_COL)\n"
+	@$(PRINT) "${BLINK}Build succeeded.\n$(NO_COL)"
 
 libs:
 	$(call print_no_args,Generating game symbol library...)
@@ -227,6 +241,11 @@ overlay: $(BIN)
 	$(call print_no_args,Generating stgz symbol library...)
 	$(V)$(PYTHON) tools/gen_libs.py -m libgz -e $(ELF)
 	$(call print_no_args,Success!)
+
+patch: $(OUT_ROM)
+	$(call print_no_args,Creating BPS patch...)
+	$(V)$(FLIPS) --create --bps "$(BASEROM)" "$(OUT_ROM)" "$(OUT_BPS)"
+	$(V)$(MAKE) infos
 
 run: all
 ifeq ($(STGZ_EMULATOR),)
@@ -245,7 +264,7 @@ venv:
 	$(V)$(PYTHON) -m pip install -U -r tools/requirements.txt
 	$(call print_no_args,Success!)
 
-.PHONY: all build clean distclean extract hooks init libs overlay run setup venv
+.PHONY: all build clean distclean extract hooks init infos libs patch overlay run setup venv
 
 ### misc project recipes ###
 
@@ -305,3 +324,7 @@ $(HOOKS_GAME_ELF): $(HOOKS_GAME_OBJ)
 $(HOOKS_GAME_BIN): $(HOOKS_GAME_ELF)
 	$(call print_two_args,Wrapping hooks binary to ELF:,$<,$@)
 	$(V)$(OBJCOPY) -S -O binary $< $@
+
+$(OUT_ROM): build
+	$(call print_one_arg,Assembling the rom:,$@)
+	$(V)$(DSROM) build --config $(EXTRACTED_DIR)/config.yaml --rom $@
