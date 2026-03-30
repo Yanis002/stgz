@@ -97,7 +97,7 @@ HOOKS_GAME_SRC := $(wildcard hooks/src/*.cpp)
 HOOKS_GAME_OBJ := $(foreach f,$(HOOKS_GAME_SRC:hooks/%=%),$(HOOKS_BUILD_DIR)/$(f:.cpp=.o))
 HOOKS_GAME_DEPS := $(foreach f,$(HOOKS_GAME_SRC:hooks/%=%),$(HOOKS_BUILD_DIR)/$(f:.cpp=.d))
 
-ALL_DEPS := $(DEPS) $(HOOKS_DEPS) $(HOOKS_GAME_DEPS)
+ALL_DEPS := $(sort $(DEPS) $(HOOKS_DEPS) $(HOOKS_GAME_DEPS))
 
 # region addresses
 ifeq ($(REGION),eur)
@@ -145,6 +145,7 @@ HOOKS_GAME_BIN := $(HOOKS_GAME_ELF:.elf=.bin)
 HOOKS_GAME_MAP := $(HOOKS_GAME_ELF:.elf=.map)
 
 # create output directories
+$(shell $(MKDIR) -p $(BUILD_DIR)/src/data)
 $(shell $(MKDIR) -p $(BUILD_DIR)/src/thumb)
 $(shell $(MKDIR) -p $(HOOKS_BUILD_DIR)/src)
 

@@ -6,6 +6,13 @@
 typedef void (*GZAction)(u32 params);
 typedef bool (*GZCheckCallback)(int itemIndex);
 
+struct RoomIndicesInfos {
+    const u8* ptr;
+    u8 count;
+};
+
+extern const RoomIndicesInfos gRoomIndicesPtrs[SceneIndex_Max];
+
 // from oot-gc
 extern "C" char* strcat(char* dst, const char* src);
 
