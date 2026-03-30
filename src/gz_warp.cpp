@@ -44,6 +44,15 @@ static void ExecuteWarp(u32 params) {
     UnkStruct_SceneChange1 infos;
     infos.mNextSceneIndex = gWarpManager.GetSceneIndex();
 
+    // do nothing if it's a test scene since they are missing
+    if (infos.mNextSceneIndex >= SceneIndex_test_trn && infos.mNextSceneIndex <= SceneIndex_test_trn2) {
+        return;
+    }
+
+    if (infos.mNextSceneIndex >= SceneIndex_test_hiratsu && infos.mNextSceneIndex <= SceneIndex_test_slope) {
+        return;
+    }
+
     // necessary to avoid crashes with specific scenes
     switch (infos.mNextSceneIndex) {
         case SceneIndex_b_last22:
@@ -58,7 +67,15 @@ static void ExecuteWarp(u32 params) {
             break;
     }
 
+    // disable pause and frame advance
+    GZState* pState = gGZ.GetState();
+    pState->isPaused = false;
+    pState->requestedFrames = 0;
+
+    // close menu
     gMenuManager.Quit();
+
+    // copy the informations and execute the warp
     memcpy(&data_027e09a4->mUnk_14, &infos, sizeof(UnkStruct_SceneChange1));
     func_ov000_02071000(data_027e09a4->mpWarpUnk1, &data_027e09a4->mUnk_14, 2);
 }
@@ -72,40 +89,6 @@ static GZMenuItem sWarpExecuteItems[] = {
 
 static GZMenu sWarpExecuteMenu = {
     "Warp - Execute", gWarpManager.GetMenu(), sWarpExecuteItems, ARRAY_LEN(sWarpExecuteItems), true, 0,
-};
-
-static GZMenuItem sTestMenuItems[] = {
-    {"test_trn", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_trn, &sWarpExecuteMenu, 0},
-    {"test_trn2", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_trn2, &sWarpExecuteMenu, 0},
-    {"test_pre", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_pre, &sWarpExecuteMenu, 0},
-    {"test_iwa", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_iwa, &sWarpExecuteMenu, 0},
-    {"test_hiratsu", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_hiratsu, &sWarpExecuteMenu, 0},
-    {"test_sik", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_sik, &sWarpExecuteMenu, 0},
-    {"test_fuj", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_fuj, &sWarpExecuteMenu, 0},
-    {"test_nit", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_nit, &sWarpExecuteMenu, 0},
-    {"test_mri", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_mri, &sWarpExecuteMenu, 0},
-    {"test_morita", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_morita, &sWarpExecuteMenu, 0},
-    {"test_yamaz", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_yamaz, &sWarpExecuteMenu, 0},
-    {"test_sako", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_sako, &sWarpExecuteMenu, 0},
-    {"test_kita", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_kita, &sWarpExecuteMenu, 0},
-    {"test_take", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_take, &sWarpExecuteMenu, 0},
-    {"test_suzuki", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_suzuki, &sWarpExecuteMenu, 0},
-    {"test_okane", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_okane, &sWarpExecuteMenu, 0},
-    {"test_dera", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_dera, &sWarpExecuteMenu, 0},
-    {"test_hosaka", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_hosaka, &sWarpExecuteMenu, 0},
-    {"test_hosaka_f", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_hosaka_f, &sWarpExecuteMenu, 0},
-    {"test_kato", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_kato, &sWarpExecuteMenu, 0},
-    {"test_okane_f", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_okane_f, &sWarpExecuteMenu, 0},
-    {"test_yamaz_f", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_yamaz_f, &sWarpExecuteMenu, 0},
-    {"test_sako_f", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_sako_f, &sWarpExecuteMenu, 0},
-    {"test_take_f", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_take_f, &sWarpExecuteMenu, 0},
-    {"test_kiuchi", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_kiuchi, &sWarpExecuteMenu, 0},
-    {"test_dera_f", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_dera_f, &sWarpExecuteMenu, 0},
-    {"test_slope", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_test_slope, &sWarpExecuteMenu, 0},
-};
-
-static GZMenu sTestMenu = {
-    "Warp - Test", gWarpManager.GetMenu(), sTestMenuItems, ARRAY_LEN(sTestMenuItems), true, 0,
 };
 
 static GZMenuItem sTrainMenuItems[] = {
@@ -259,7 +242,6 @@ static GZMenu sMiscMenu = {
 };
 
 static GZMenuItem sWarpMenuItems[] = {
-    {"Test", GZMenuItemType_Default, NULL, NULL, 0, &sTestMenu, 0},
     {"Train", GZMenuItemType_Default, NULL, NULL, 0, &sTrainMenu, 0},
     {"Dungeon", GZMenuItemType_Default, NULL, NULL, 0, &sDungeonMenu, 0},
     {"Boss", GZMenuItemType_Default, NULL, NULL, 0, &sBossMenu, 0},
@@ -311,10 +293,6 @@ void GZWarpManager::UpdateRoomIndexRange() {
 
 bool GZWarpManager::IsMenuActive() {
     if (gMenuManager.GetActiveMenu() == &sWarpExecuteMenu) {
-        return true;
-    }
-
-    if (gMenuManager.GetActiveMenu() == &sTestMenu) {
         return true;
     }
 

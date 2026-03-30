@@ -20,11 +20,6 @@ I'm not sure yet what are the limitations but here's what I'd like to have:
 
 Basically, if you're familiar with the [practice tools from OoT](https://github.com/glankk/gz), I'd like to add similar features.
 
-## Project TODO List
-
-- Add rolling releases (low priority)
-- Implement each planned features, if possible
-
 ## Patching
 
 To apply a PPF patch, you need to follow the following steps:
