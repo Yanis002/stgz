@@ -416,40 +416,48 @@ void GZMenuManager::Update() {
         }
     }
 
-    if (pActiveMenuItem != NULL && pActiveMenuItem->eType == GZMenuItemType_Increment) {
-        bool changed = false;
+    // null when "back" or "quit" is selected
+    if (pActiveMenuItem != NULL) {
+        switch (pActiveMenuItem->eType) {
+            case GZMenuItemType_Increment: {
+                bool changed = false;
 
-        if (this->mControls.decrease.Executed(this->mpButtons)) {
-            pActiveMenuItem->value--;
-            changed = true;
-        } else if (this->mControls.increase.Executed(this->mpButtons)) {
-            pActiveMenuItem->value++;
-            changed = true;
-        }
-
-        // for now only amounts is using increments
-        if (this->IsAmountsMenuActive() && changed && this->mState.itemIndex > 0 && pActiveMenuItem->action != NULL) {
-            pActiveMenuItem->action(pActiveMenuItem->params);
-            this->mState.requestRedraw = true;
-        }
-    }
-
-    if (this->mControls.ok.Executed(this->mpButtons)) {
-        // handle confirmation stuff
-
-        // null when "back" or "quit" is selected
-        if (pActiveMenuItem != NULL) {
-            if (!this->mpActiveMenu->needSaveFile || (this->mpActiveMenu->needSaveFile && gGZ.IsAdventureMode())) {
-                if ((!this->IsAmountsMenuActive() || this->mState.itemIndex == 0) && pActiveMenuItem->action != NULL) {
-                    pActiveMenuItem->action(pActiveMenuItem->params);
-                } else if (pActiveMenuItem->submenu != NULL) {
-                    this->mpActiveMenu = pActiveMenuItem->submenu;
-                    this->mState.itemIndex = 0;
+                if (this->mControls.decrease.Executed(this->mpButtons)) {
+                    pActiveMenuItem->value--;
+                    changed = true;
+                } else if (this->mControls.increase.Executed(this->mpButtons)) {
+                    pActiveMenuItem->value++;
+                    changed = true;
                 }
 
-                this->mState.requestRedraw = true;
+                if (changed && this->mState.itemIndex > 0 && pActiveMenuItem->action != NULL) {
+                    pActiveMenuItem->action(pActiveMenuItem->params);
+                    this->mState.requestRedraw = true;
+                }
+
+                break;
             }
-        } else {
+            default:
+                if (this->mControls.ok.Executed(this->mpButtons)) {
+                    // handle confirmation stuff
+                    if (!this->mpActiveMenu->needSaveFile ||
+                        (this->mpActiveMenu->needSaveFile && gGZ.IsAdventureMode())) {
+                        if (pActiveMenuItem->action != NULL) {
+                            pActiveMenuItem->action(pActiveMenuItem->params);
+                        }
+
+                        if (pActiveMenuItem->submenu != NULL) {
+                            this->mpActiveMenu = pActiveMenuItem->submenu;
+                            this->mState.itemIndex = 0;
+                        }
+
+                        this->mState.requestRedraw = true;
+                    }
+                }
+                break;
+        }
+    } else {
+        if (this->mControls.ok.Executed(this->mpButtons)) {
             if (this->IsMainMenuActive()) {
                 this->Quit();
             } else {
