@@ -95,11 +95,12 @@ static GZMenuItem sMainMenuItems[] = {
 
 // -- inventory menu items --
 
+static void InitAmounts(u32 params);
 static void UpdateInventory(u32 params);
 static bool HasObtainedItem(int itemIndex);
 
 static GZMenuItem sInventoryMenuItems[] = {
-    {"Amounts", GZMenuItemType_Default, NULL, NULL, 0, &sAmountsMenu, 0},
+    {"Amounts", GZMenuItemType_Default, NULL, InitAmounts, 0, &sAmountsMenu, 0},
     {"Whirlwind", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_Whirlwind, NULL, 0},
     {"Boomerang", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_Boomerang, NULL, 0},
     {"Whip", GZMenuItemType_Bool, HasObtainedItem, UpdateInventory, ItemFlag_Whip, NULL, 0},
@@ -163,6 +164,45 @@ GZMenu sDebugMenu = {"Debug", &sMainMenu, sDebugMenuItems, ARRAY_LEN(sDebugMenuI
 GZMenu sRegsMenu = {"Debug - Regs", &sDebugMenu, sRegsMenuItems, ARRAY_LEN(sRegsMenuItems), false, 0};
 
 // clang-format on
+
+static void InitAmounts(u32 params) {
+    if (data_027e0ce0 == NULL || data_027e0ce0->mUnk_28 == NULL) {
+        return;
+    }
+
+    for (int i = 0; i < ARRAY_LEN(sAmountsMenuItems); i++) {
+        GZMenuItem* pItem = &sAmountsMenuItems[i];
+
+        switch (pItem->params & 0xFF) {
+            case InventoryAmountType_Bow:
+                pItem->value = data_027e0ce0->mUnk_28->mArrowAmount;
+                break;
+            case InventoryAmountType_Bombs:
+                pItem->value = data_027e0ce0->mUnk_28->mBombAmount;
+                break;
+            case InventoryAmountType_QuiverCapacity:
+                pItem->value = data_027e0ce0->mUnk_28->mQuiverCapacity;
+                break;
+            case InventoryAmountType_BombCapacity:
+                pItem->value = data_027e0ce0->mUnk_28->mBombBagCapacity;
+                break;
+            case InventoryAmountType_Potion1:
+                pItem->value = data_027e0ce0->mUnk_28->mPotions[0];
+                break;
+            case InventoryAmountType_Potion2:
+                pItem->value = data_027e0ce0->mUnk_28->mPotions[1];
+                break;
+            case InventoryAmountType_SmallKeys:
+                pItem->value = data_027e0ce0->mUnk_28->mKeyAmount;
+                break;
+            case InventoryAmountType_LightTears:
+                pItem->value = data_027e0ce0->mUnk_28->mTearsAmount;
+                break;
+            default:
+                break;
+        }
+    }
+}
 
 static void UpdateInventory(u32 params) {
     ItemFlag eFlag = params & 0xFF;
