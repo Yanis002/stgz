@@ -234,7 +234,7 @@ static GZMenu sBattleMenu = {
 };
 
 static GZMenuItem sMiscMenuItems[] = {
-    {"demo_train", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_demo_train, NULL, 0},
+    {"demo_train", GZMenuItemType_Default, NULL, UpdateSceneIndex, SceneIndex_demo_train, &sWarpExecuteMenu, 0},
 };
 
 static GZMenu sMiscMenu = {
